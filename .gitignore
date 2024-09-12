@@ -5,6 +5,8 @@ __pycache__/
 
 # C extensions
 *.so
+# Virtual Environments
+/food-suggester
 
 # Distribution / packaging
 .Python
