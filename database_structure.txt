@@ -1,0 +1,28 @@
+Recipe Table:
+recipe_id: Primary key to uniquely identify each recipe.
+recipe_name: The name of the recipe.
+preparation_time: Represents the total cooking time for the recipe.
+serving: Number of servings the recipe can make.
+n_ingredients: The total number of ingredients in the recipe.
+n_steps: The number of steps (instructions) required to complete the recipe.
+source_url: The url that goes to the page of the recipe.
+
+Instructions Table:
+instruction_id: Primary key to uniquely identify each instruction.
+recipe_id: Foreign key linking the instruction to its corresponding recipe.
+step_number: The sequence of the step within the recipe.
+instruction: The actual instruction text for that step.
+
+Ingredients Table:
+ingredient_id: Primary key to uniquely identify each ingredient.
+recipe_id: Foreign key linking the ingredient to its corresponding recipe.
+ingredient_name: The original ingredient name with quantities and units.
+clean_ingredient_name: The cleaned version of the ingredient name, without quantities and units, for AI processing.
+
+Categories Table:
+category_id: Primary key to uniquely identify each category.
+category: The category.
+
+RecipeCategory:
+category_id: Primary and Foreign key to uniquely identify each category.
+recipe_id: Primary and Foreign key linking the category to its corresponding recipe.
