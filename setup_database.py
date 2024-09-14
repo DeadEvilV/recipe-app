@@ -20,14 +20,16 @@ def create_tables(connection):
     cursor = connection.cursor()
     cursor.execute(
     """
-    CREATE TABLE IF NOT EXISTS recipes (
+    CREATE TABLE IF NOT EXISTS Recipes (
         recipe_id INT AUTO_INCREMENT PRIMARY KEY,
         recipe_name VARCHAR(255) NOT NULL,
         number_of_ingredients INT NOT NULL,
         number_of_steps INT NOT NULL,
-        number_of_servings INT NOT NULL,
+        number_of_servings VARCHAR(10) NOT NULL,
         preparation_time INT NOT NULL,
-        source_url VARCHAR(255) NOT NULL
+        raw_ingredients TEXT NOT NULL,
+        number_of_ratings INT NOT NULL,
+        recipe_link VARCHAR(255) NOT NULL
     )
     """)
 
@@ -37,7 +39,7 @@ def create_tables(connection):
         recipe_id INT NOT NULL,
         step_number INT NOT NULL,
         instruction TEXT NOT NULL,
-        FOREIGN KEY (recipe_id) REFERENCES recipes(recipe_id) ON DELETE CASCADE
+        FOREIGN KEY (recipe_id) REFERENCES Recipes(recipe_id) ON DELETE CASCADE
     )
     """)
     
@@ -46,7 +48,7 @@ def create_tables(connection):
         iq_id INT AUTO_INCREMENT PRIMARY KEY,
         recipe_id INT NOT NULL,
         ingredient_name VARCHAR(255) NOT NULL,
-        FOREIGN KEY (recipe_id) REFERENCES recipes(recipe_id) ON DELETE CASCADE
+        FOREIGN KEY (recipe_id) REFERENCES Recipes(recipe_id) ON DELETE CASCADE
     )
     """)
   
@@ -71,11 +73,31 @@ def create_tables(connection):
         recipe_id INT NOT NULL,
         category_id INT NOT NULL,
         PRIMARY KEY (recipe_id, category_id),
-        FOREIGN KEY (recipe_id) REFERENCES recipes(recipe_id) ON DELETE CASCADE,
+        FOREIGN KEY (recipe_id) REFERENCES Recipes(recipe_id) ON DELETE CASCADE,
         FOREIGN KEY (category_id) REFERENCES Categories(category_id) ON DELETE CASCADE
     )
     """)
-
+    
+def insert_recipe(connection, recipe_name, number_of_ingredients, number_of_steps, number_of_servings, 
+                    preparation_time, raw_ingredients, number_of_ratings, recipe_link):
+    cursor = connection.cursor()
+  
+    check_query = """
+    SELECT COUNT(*) FROM Recipes WHERE recipe_name = %s AND recipe_link = %s
+    """
+    cursor.execute(check_query, (recipe_name, recipe_link))
+    result = cursor.fetchone()
+    
+    if result['COUNT(*)'] == 0:
+        insert_query = """
+        INSERT INTO Recipes (recipe_name, number_of_ingredients, number_of_steps, number_of_servings, 
+                        preparation_time, raw_ingredients, number_of_ratings, recipe_link)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(insert_query, (recipe_name, number_of_ingredients, number_of_steps, number_of_servings, 
+                        preparation_time, raw_ingredients, number_of_ratings, recipe_link))
+        connection.commit()
+         
 def main():
     connection = None
     try:

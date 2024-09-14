@@ -5,7 +5,9 @@ preparation_time: Represents the total cooking time for the recipe.
 serving: Number of servings the recipe can make.
 n_ingredients: The total number of ingredients in the recipe.
 n_steps: The number of steps (instructions) required to complete the recipe.
-source_url: The url that goes to the page of the recipe.
+raw_ingredients: The HTML text for ingredients.
+rating: Rating of the recipe.
+recipe_link: The url that goes to the page of the recipe.
 
 Instructions Table:
 instruction_id: Primary key to uniquely identify each instruction.
