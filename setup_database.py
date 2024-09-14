@@ -1,33 +1,25 @@
-import mysql.connector
+import pymysql
 
-def connect_to_mysql():
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="Gorkemozan246!"
+def connect():
+    timeout = 10
+    connection = pymysql.connect(
+        charset="utf8mb4",
+        connect_timeout=timeout,
+        cursorclass=pymysql.cursors.DictCursor,
+        db="food-suggester",
+        host="mysql-food-suggester-food-suggester.h.aivencloud.com",
+        password="AVNS_fL1GBLVBNF4rHJjxi8v",
+        read_timeout=timeout,
+        port=16180,
+        user="avnadmin",
+        write_timeout=timeout,
     )
-    cursor = conn.cursor()
-    return conn, cursor
+    return connection
 
-def create_database(conn, cursor):
-    cursor.execute("CREATE DATABASE IF NOT EXISTS food_suggest_db")
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-def connect_to_database():
-    conn = mysql.connector.connect(
-        host = "localhost",
-        user = "root",
-        password = "Gorkemozan246!",
-        database = "food_suggest_db"
-    )
-
-    cursor = conn.cursor()
-    return conn, cursor
-
-def create_tables(conn, cursor):
-    create_all_tables = """
+def create_tables(connection):
+    cursor = connection.cursor()
+    cursor.execute(
+    """
     CREATE TABLE IF NOT EXISTS recipes (
         recipe_id INT AUTO_INCREMENT PRIMARY KEY,
         recipe_name VARCHAR(255) NOT NULL,
@@ -36,56 +28,64 @@ def create_tables(conn, cursor):
         number_of_servings INT NOT NULL,
         preparation_time INT NOT NULL,
         source_url VARCHAR(255) NOT NULL
-    );
-  
-    CREATE TABLE IF NOT EXISTS Instructions (
+    )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS Instructions (
         instruction_id INT AUTO_INCREMENT PRIMARY KEY,
         recipe_id INT NOT NULL,
         step_number INT NOT NULL,
         instruction TEXT NOT NULL,
         FOREIGN KEY (recipe_id) REFERENCES recipes(recipe_id) ON DELETE CASCADE
-    );
+    )
+    """)
     
-    CREATE TABLE IF NOT EXISTS IngredientsQuantity (
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS IngredientsQuantity (
         iq_id INT AUTO_INCREMENT PRIMARY KEY,
         recipe_id INT NOT NULL,
         ingredient_name VARCHAR(255) NOT NULL,
         FOREIGN KEY (recipe_id) REFERENCES recipes(recipe_id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS CleanIngredients (
+    )
+    """)
+  
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS CleanIngredients (
         clean_ingredient_id INT AUTO_INCREMENT PRIMARY KEY,
         iq_id INT NOT NULL,
         clean_ingredient VARCHAR(255) NOT NULL,
         FOREIGN KEY (iq_id) REFERENCES IngredientsQuantity(iq_id) ON DELETE CASCADE
-    );
-    
-    CREATE TABLE IF NOT EXISTS Categories (
+    )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS Categories (
         category_id INT AUTO_INCREMENT PRIMARY KEY,
         category VARCHAR(255) NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS RecipeCategory (
-    recipe_id INT NOT NULL,
-    category_id INT NOT NULL,
-    PRIMARY KEY (recipe_id, category_id),
-    FOREIGN KEY (recipe_id) REFERENCES recipes(recipe_id) ON DELETE CASCADE,
-    FOREIGN KEY (category_id) REFERENCES Categories(category_id) ON DELETE CASCADE
-    );
-    """
-    for command in create_all_tables.split(';'):
-        if command.strip():
-            cursor.execute(command)
-    conn.commit()
-    cursor.close()
-    conn.close()
-    
+    )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS RecipeCategory (
+        recipe_id INT NOT NULL,
+        category_id INT NOT NULL,
+        PRIMARY KEY (recipe_id, category_id),
+        FOREIGN KEY (recipe_id) REFERENCES recipes(recipe_id) ON DELETE CASCADE,
+        FOREIGN KEY (category_id) REFERENCES Categories(category_id) ON DELETE CASCADE
+    )
+    """)
+
 def main():
-    conn, cursor = connect_to_mysql()
-    create_database(conn, cursor)
-    
-    conn, cursor = connect_to_database()
-    create_tables(conn, cursor)
+    connection = None
+    try:
+        connection = connect()
+        create_tables(connection)
+    except pymysql.MySQLError as err:
+        print(f"Error: {err}")
+    finally:
+        if connection:
+            connection.close()
   
 if __name__ == "__main__":
     main()
