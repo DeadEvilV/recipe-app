@@ -27,7 +27,7 @@ def create_tables(connection):
         number_of_steps INT NOT NULL,
         number_of_servings VARCHAR(10) NOT NULL,
         preparation_time INT NOT NULL,
-        raw_ingredients TEXT NOT NULL,
+        ingredients_list TEXT NOT NULL,
         number_of_ratings INT NOT NULL,
         recipe_link VARCHAR(255) NOT NULL
     )
