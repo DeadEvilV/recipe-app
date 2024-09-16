@@ -2,7 +2,6 @@ from playwright.sync_api import sync_playwright
 import pandas as pd
 import re
 import spacy
-from fractions import Fraction
 from setup_database import connect, insert_recipe
 
 nlp = spacy.load('en_core_web_sm')
@@ -117,14 +116,14 @@ def get_recipe_data(browser, recipe_links_page):
             
             ingredient_text = li_element.inner_text()
             ingredient_text = ingredient_text.replace('\n', ' ').strip()
-            # clean_ingredient = parse_ingredient(ingredient_text)
-            # print(clean_ingredient)
+            clean_ingredient = get_main_ingredient(ingredient_text)
+            print(f"Cleaned ingredient: {clean_ingredient}")
             ingredients_list.append({
                 'heading': current_heading,
                 'ingredient_text': ingredient_text
                 #'clean_ingredient': clean_ingredient
             })
-        print(ingredients_list)
+        # print(ingredients_list)
         # insert_recipe(connection, recipe_name, number_of_ingredients, number_of_steps, number_of_servings, 
                       #preparation_time, ingredient_list, number_of_ratings, recipe_link)
         connection.commit()
@@ -141,65 +140,37 @@ def preparation_time_to_minutes(raw_preparation_time):
         preparation_time += minutes
     return preparation_time
 
-# def parse_ingredient(ingredient_text):
-#     # Remove bullet points or leading dashes
-#     ingredient_text = ingredient_text.lstrip('-–•* ')
+def get_main_ingredient(ingredient):
+    unwanted_terms = [
+    'teaspoon', 'tablespoon', 'cup', 'ounce', 'pound', 'lb', 'lbs', 'g', 'kg', 'ml', 'liter', 
+    'pinch', 'dash', 'amount', 'optional', 'or', 'fresh', 'large', 'medium', 'small', 
+    'whole', 'favorite', 'clove', 'grated', 'stalks', 'boiling'
+    ]
+    
+    # Remove fractions and special characters like "⁄" or "/"
+    ingredient = re.sub(r'[⁄/]', '', ingredient)
+    
+    # Remove numbers and fractions (e.g., 1/2)
+    ingredient = re.sub(r'\d+\/\d+|\d+', '', ingredient)
 
-#     # Remove content in parentheses
-#     ingredient_text = re.sub(r'\(.*?\)', '', ingredient_text)
-
-#     # Remove phrases like 'any amount', 'to taste', 'as needed' from the beginning
-#     phrases_to_remove = ['any amount', 'to taste', 'as needed']
-#     phrases_pattern = r'^(' + '|'.join(phrases_to_remove) + r')\b\s*'
-#     ingredient_text = re.sub(phrases_pattern, '', ingredient_text, flags=re.IGNORECASE)
-
-#     # Split on ' or ', ' and ', ',', ';' into sub-ingredients using word boundaries
-#     sub_ingredients = re.split(r'\s*(?:\bor\b|\band\b|,|;)\s*', ingredient_text, flags=re.IGNORECASE)
-
-#     parsed_ingredients = []
-#     for ingredient in sub_ingredients:
-#         # Remove quantities and units at the beginning
-#         units = [
-#             'cup', 'cups', 'teaspoon', 'teaspoons', 'tsp', 'tbsp', 'tablespoon', 'tablespoons',
-#             'pound', 'pounds', 'lb', 'lbs', 'ounce', 'ounces', 'oz', 'gram', 'grams', 'g', 'kg',
-#             'liter', 'liters', 'l', 'ml', 'pinch', 'dash', 'clove', 'cloves', 'slice', 'slices',
-#             'piece', 'pieces', 'can', 'cans', 'package', 'packages', 'bag', 'bags', 'pint', 'pints',
-#             'quart', 'quarts', 'gallon', 'gallons', 'stick', 'sticks', 'drop', 'drops', 'carton',
-#             'envelope', 'envelopes', 'jar', 'jars', 'box', 'boxes', 'bottle', 'bottles',
-#             'sprig', 'sprigs', 'bunch', 'bunches', 'head', 'heads', 'ear', 'ears', 'sheet', 'sheets',
-#             'tablespoon', 'tablespoons', 'teaspoon', 'teaspoons', 'tsp', 'tbsp'
-#         ]
-#         units_pattern = r'(?:' + '|'.join(units) + r')'
-
-#         # Quantity patterns including fractions and decimals
-#         fraction_pattern = r'(\d+\s*\d*[\/⁄]?\d*|\d*[\/⁄]\d+|\d+\.\d+)'
-
-#         # Pattern to match optional quantity and unit at the beginning
-#         pattern = r'^\s*(?:' + fraction_pattern + r'\s*)?(?:' + units_pattern + r')\b\s*'
-
-#         # Remove quantity and unit from the beginning
-#         ingredient_name = re.sub(pattern, '', ingredient, flags=re.IGNORECASE)
-
-#         # Remove any remaining leading quantities (e.g., "2% milk")
-#         ingredient_name = re.sub(r'^\s*' + fraction_pattern + r'\s+', '', ingredient_name)
-
-#         # Split on commas and take the first part (before preparation instructions)
-#         ingredient_name = ingredient_name.split(',')[0]
-
-#         # Remove any extra descriptors (optional)
-#         descriptors_to_remove = ['packed', 'firmly']
-#         for word in descriptors_to_remove:
-#             pattern_desc = r'\b' + re.escape(word) + r'\b'
-#             ingredient_name = re.sub(pattern_desc, '', ingredient_name, flags=re.IGNORECASE)
-
-#         # Remove extra spaces
-#         ingredient_name = re.sub(r'\s+', ' ', ingredient_name).strip()
-
-#         # Ignore empty strings
-#         if ingredient_name:
-#             parsed_ingredients.append(ingredient_name)
-
-#     return parsed_ingredients
+    # Tokenize the cleaned ingredient using Spacy
+    doc = nlp(ingredient)
+    
+    # Filter out unwanted terms and measurement units
+    filtered_tokens = []
+    
+    for token in doc:
+        # Skip unwanted terms
+        if token.lemma_ in unwanted_terms or token.pos_ in ['DET', 'NUM']:
+            continue
+        # Capture the main noun phrases (consecutive nouns or noun + adjectives)
+        if token.pos_ in ["NOUN", "PROPN", "ADJ"]:
+            filtered_tokens.append(token.text)
+    
+    # Join the cleaned tokens back into a single string
+    cleaned_ingredient = " ".join(filtered_tokens)
+    
+    return cleaned_ingredient.strip()
     
 def main():
     with sync_playwright() as p:
