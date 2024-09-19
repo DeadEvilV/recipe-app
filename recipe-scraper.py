@@ -1,132 +1,142 @@
-from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
+import asyncio
 import pandas as pd
 import re
 import spacy
-from setup_database import connect, insert_recipe
+from setup_database import create_pool, insert_recipe
 
 nlp = spacy.load('en_core_web_sm')
 
-def get_page_letter(browser):
+async def get_page_letter(browser):
     link = "https://www.food.com/browse/allrecipes/?page=1&letter=123"
 
-    page = browser.new_page()
-    page.goto(link)
+    page = await browser.new_page()
+    await page.goto(link)
     
     magic_columns = page.locator('//div[@class="letter-filters magic-buttons"]/ul/li[contains(@class, "magic-columns-3")]')
-    magic_columns_count = magic_columns.count()
+    magic_columns_count = await magic_columns.count()
     letters = []
     for i in range(magic_columns_count):
         li_element = magic_columns.nth(i)
         ul_element = li_element.locator('ul')
-        li_count = ul_element.locator('li').count()
+        li_count = await ul_element.locator('li').count()
         for j in range(li_count):
             inner_li_element = ul_element.locator('li').nth(j)
-            li_class = inner_li_element.get_attribute('class')
+            li_class = await inner_li_element.get_attribute('class')
             if li_class == 'selected':
-                letter = inner_li_element.inner_html()
+                letter = await inner_li_element.inner_html()
             else:
-                letter = inner_li_element.locator('a').inner_text()
+                letter = await inner_li_element.locator('a').inner_text()
             letters.append(letter)
-    page.close()
+    await page.close()
     return letters
 
-def get_recipe_links(browser, letters):
-    all_recipe_links = []
-
+async def get_recipe_links(browser, letters, pool):
     for letter in letters:
         page_url = f"https://www.food.com/browse/allrecipes/?page=1&letter={letter}"
-        page = browser.new_page()
-        page.goto(page_url)
-        last_page = int(page.locator('//li[@class="page  page-last  js-paging-after"]/a').inner_text())
-        page.close()
+        page = await browser.new_page()
+        await page.goto(page_url)
+        last_page = int(await page.locator('//li[@class="page  page-last  js-paging-after"]/a').inner_text())
+        await page.close()
+        
+        tasks = []
+        max_concurrent_scraping_tasks = 30
+        semaphore = asyncio.Semaphore(max_concurrent_scraping_tasks)
+
         for page in range(1, last_page + 1):
             base_url = f"https://www.food.com/browse/allrecipes/?page={page}&letter={letter}"
             link = base_url.format(page=page, letter=letter)
-            
-            recipe_links_page = []
-            
-            page = browser.new_page()
-            page.goto(link)
+                        
+            page = await browser.new_page()
+            await page.goto(link)
             recipe_section = page.locator('//div[@class="content-columns"]')
-            tabs_count = recipe_section.locator('div').count()
+            tabs_count = await recipe_section.locator('div').count()
             for tab in range(tabs_count):
                 ul_section = recipe_section.locator('div').nth(tab).locator('ul')
-                li_count = ul_section.locator('li').count()
+                li_count = await ul_section.locator('li').count()
                 for li in range(li_count):
                     links = ul_section.locator('li').nth(li).locator('a')
-                    for recipe_link in links.element_handles():
-                        r_link = recipe_link.get_attribute('href')
-                        recipe_links_page.append(r_link)
-                # save_to_csv(recipe_links, "recipes.csv")
-            page.close()
-            get_recipe_data(browser, recipe_links_page)
-    
-    return all_recipe_links
+                    for recipe_link in await links.element_handles():
+                        r_link = await recipe_link.get_attribute('href')
+                        task = asyncio.create_task(get_recipe_data(semaphore, browser, r_link, pool))
+                        tasks.append(task)
+            await page.close()
+    await asyncio.gather(*tasks)
 
-def get_recipe_data(browser, recipe_links_page):
-    connection = connect()
-
-    base_url = "https://www.food.com"
-    for recipe_link in recipe_links_page:
+async def get_recipe_data(semaphore, browser, recipe_link, pool):
+    async with semaphore:
+        base_url = "https://www.food.com"
         link = base_url + recipe_link
-        page = browser.new_page()
-        page.goto(link)
-        page.wait_for_load_state("domcontentloaded")
+        page = await browser.new_page()
+        await page.goto(link)
+        await page.wait_for_load_state("domcontentloaded")
 
-        if "Whoops…" in page.content():
-            continue
-        recipe_name = page.locator('//*[@id="recipe"]/div[2]/h1').inner_text()
-        # print(recipe_name)
-        category = page.locator('//*[@id="recipe"]/div[1]/nav/ol/li[2]/a/span').inner_text()
-        raw_preparation_time = page.locator('//*[@id="recipe"]/div[9]/div/dl/div[1]/dd').inner_text()
-        preparation_time = preparation_time_to_minutes(raw_preparation_time)
-        number_of_ingredients = page.locator('//*[@id="recipe"]/div[9]/div/dl/div[2]/dd').inner_text()
-        # print(f"Number of ingredients: {number_of_ingredients}")
+        try:
+            if "Whoops…" in await page.content():
+                return
+            recipe_name = await page.locator('//*[@id="recipe"]/div[2]/h1').inner_text()
+            # print(recipe_name)
+            category = await page.locator('//*[@id="recipe"]/div[1]/nav/ol/li[2]/a/span').inner_text()
+            raw_preparation_time = await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[1]/dd').inner_text()
+            preparation_time = preparation_time_to_minutes(raw_preparation_time)
+            number_of_ingredients = await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[2]/dd').inner_text()
+            # print(f"Number of ingredients: {number_of_ingredients}")
 
-        if page.locator('//*[@id="recipe"]/div[9]/div/dl/div[3]/dt').inner_text() == 'Yields:':
-            if page.locator('//*[@id="recipe"]/div[9]/div/dl/div[4]/dd').count() > 0:
-                number_of_servings = page.locator('//*[@id="recipe"]/div[9]/div/dl/div[4]/dd').inner_text()
+            if await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[3]/dt').inner_text() == 'Yields:':
+                if await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[4]/dd').count() > 0:
+                    number_of_servings = await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[4]/dd').inner_text()
+                else:
+                    number_of_servings = 'N/A'
+            elif await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[3]/dt').inner_text() == 'Serves:' or await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[4]/dt').inner_text() == 'Serves:':
+                number_of_servings = await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[3]/dd').inner_text()
             else:
                 number_of_servings = 'N/A'
-        elif page.locator('//*[@id="recipe"]/div[9]/div/dl/div[3]/dt').inner_text() == 'Serves:' or page.locator('//*[@id="recipe"]/div[9]/div/dl/div[4]/dt').inner_text() == 'Serves:':
-            number_of_servings = page.locator('//*[@id="recipe"]/div[9]/div/dl/div[3]/dd').inner_text()
-        else:
-            number_of_servings = 'N/A'
-        # print(f"Number of servings: {number_of_servings}")
-        
-        if page.locator('//*[@id="recipe"]/div[3]/div/div/a/span/div/span').count() > 0:
-            number_of_ratings = page.locator('//*[@id="recipe"]/div[3]/div/div/a/span/div/span').inner_text()
-        else:
-            number_of_ratings = 0
+            # print(f"Number of servings: {number_of_servings}")
             
-        number_of_steps = page.locator('//*[@id="recipe"]/section[2]/ul/li').count()
-        # print(f"Number of steps: {number_of_steps}")
-        
-        # print(f"Number of ratings: {number_of_ratings}")
-        ingredients_list = []
-        current_heading = None
-        ingredient_items = page.locator('//*[@id="recipe"]/section[1]/ul/li')
-        item_count = ingredient_items.count()
-        print(recipe_name)
-        for i in range(item_count):
-            li_element = ingredient_items.nth(i)
-            if li_element.locator('h4').count() > 0:
-                current_heading = li_element.locator('h4').inner_text().strip()
-                continue
+            if await page.locator('//*[@id="recipe"]/div[3]/div/div/a/span/div/span').count() > 0:
+                number_of_ratings = await page.locator('//*[@id="recipe"]/div[3]/div/div/a/span/div/span').inner_text()
+            else:
+                number_of_ratings = 0
+                
+            number_of_steps = await page.locator('//*[@id="recipe"]/section[2]/ul/li').count()
+            # print(f"Number of steps: {number_of_steps}")
             
-            ingredient_text = li_element.inner_text()
-            ingredient_text = ingredient_text.replace('\n', ' ').strip()
-            clean_ingredient = get_main_ingredient(ingredient_text)
-            print(f"Cleaned ingredient: {clean_ingredient}")
-            ingredients_list.append({
-                'heading': current_heading,
-                'ingredient_text': ingredient_text
-                #'clean_ingredient': clean_ingredient
-            })
-        # print(ingredients_list)
-        # insert_recipe(connection, recipe_name, number_of_ingredients, number_of_steps, number_of_servings, 
-                      #preparation_time, ingredient_list, number_of_ratings, recipe_link)
-        connection.commit()
+            # print(f"Number of ratings: {number_of_ratings}")
+            ingredients_list = []
+            current_heading = None
+            ingredient_items = page.locator('//*[@id="recipe"]/section[1]/ul/li')
+            item_count = await ingredient_items.count()
+            for i in range(item_count):
+                li_element = ingredient_items.nth(i)
+                if await li_element.locator('h4').count() > 0:
+                    current_heading = (await li_element.locator('h4').inner_text()).strip()
+                    continue
+                
+                ingredient_text = await li_element.inner_text()
+                ingredient_text = ingredient_text.replace('\n', ' ').strip()
+                # clean_ingredient = get_main_ingredient(ingredient_text)
+                # print(f"Cleaned ingredient: {clean_ingredient}")
+                ingredients_list.append({
+                    'heading': current_heading,
+                    'ingredient_text': ingredient_text
+                    #'clean_ingredient': clean_ingredient
+                })
+            recipe_data = {
+                'recipe_name': recipe_name,
+                'number_of_ingredients': number_of_ingredients,
+                'number_of_steps': number_of_steps,
+                'number_of_servings': number_of_servings,
+                'preparation_time': preparation_time,
+                'ingredients_list': ingredients_list,
+                'number_of_ratings': number_of_ratings,
+                'recipe_link': link
+            }
+            await insert_recipe(pool, recipe_data)
+        except Exception as e:
+            print(e)
+            return
+        finally:
+            await page.close()
         
 def preparation_time_to_minutes(raw_preparation_time):
     preparation_time = 0
@@ -140,7 +150,7 @@ def preparation_time_to_minutes(raw_preparation_time):
         preparation_time += minutes
     return preparation_time
 
-def get_main_ingredient(ingredient):
+async def get_main_ingredient(ingredient):
     unwanted_terms = [
     'teaspoon', 'tablespoon', 'cup', 'ounce', 'pound', 'lb', 'lbs', 'g', 'kg', 'ml', 'liter', 
     'pinch', 'dash', 'amount', 'optional', 'or', 'fresh', 'large', 'medium', 'small', 
@@ -172,12 +182,14 @@ def get_main_ingredient(ingredient):
     
     return cleaned_ingredient.strip()
     
-def main():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        letters = get_page_letter(browser=browser)
-        all_recipe_links = get_recipe_links(browser=browser, letters=letters)
-        browser.close()
-        
+async def main():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        pool = await create_pool()
+        letters = await get_page_letter(browser=browser)
+        await get_recipe_links(browser=browser, letters=letters, pool=pool)
+        await pool.close()
+        await browser.close()
+
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
