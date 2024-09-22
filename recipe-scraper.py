@@ -118,7 +118,7 @@ async def get_recipe_data(semaphore, browser, recipe_link, pool, page_queue):
             preparation_time = preparation_time_to_minutes(raw_preparation_time)
             number_of_ingredients = await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[2]/dd').inner_text()
             
-            page.set_default_timeout(1000)
+            page.set_default_timeout(5000)
             number_of_servings = 'N/A'
             if await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[3]/dt').inner_text() == 'Serves:':
                 if await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[3]/dd').count() > 0:
@@ -319,7 +319,7 @@ async def main():
             page = await page_queue.get()
             await page.close()
             
-        await pool.close()
+        await pool.close() 
         await browser.close()
 
 if __name__ == "__main__":

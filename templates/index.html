@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe App</title>
+</head>
+<body>
+    <h1>Welcome to the Recipe App</h1>
+
+    <form action="/search" method="get">
+        <input type="text" name="query" placeholder="Search recipes...">
+        <button type="submit">Search</button>
+    </form>
+
+    <h2>Categories</h2>
+    <form action="/categories" method="get">
+        <button type="submit">Browse by Category</button>
+    </form>
+
+    <h2>Random Recipes</h2>
+    <ul>
+        {% for recipe in random_recipes %}
+        <li><a href="{{ recipe.recipe_link }}">{{ recipe.recipe_name }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

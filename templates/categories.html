@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Categories</title>
+</head>
+<body>
+    <h1>Categories</h1>
+
+    <!-- Form to select category -->
+    <form id="categoryForm" onsubmit="return false;">
+        <select name="category_id" onchange="navigateToCategory(this)">
+            <option value="" selected disabled>Select a category</option>
+            {% for category in categories %}
+            <option value="{{ category.category_id }}">{{ category.category }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    <script>
+        function navigateToCategory(selectElement) {
+            const categoryId = selectElement.value;
+            window.location.href = '/category/' + categoryId;
+        }
+    </script>
+</body>
+</html>

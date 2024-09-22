@@ -1,4 +1,3 @@
-import pymysql
 import aiomysql
 import asyncio
 

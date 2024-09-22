@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Category Recipes</title>
+</head>
+<body>
+    <h1>Recipes in Category {{ category_name }}</h1>
+    <ul>
+        {% for recipe in recipes %}
+        <li><a href="{{ recipe.recipe_link }}">{{ recipe.recipe_name }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
