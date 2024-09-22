@@ -50,7 +50,7 @@ async def get_page_letter(browser):
     return letters
 
 async def get_recipe_links(browser, letters, pool, state):
-    max_concurrent_scraping_tasks = 50
+    max_concurrent_scraping_tasks = 30
     semaphore = asyncio.Semaphore(max_concurrent_scraping_tasks)
     for letter in letters:
         if state['letter'] is not None:
@@ -101,7 +101,7 @@ async def get_recipe_data(semaphore, browser, recipe_link, pool):
         base_url = "https://www.food.com"
         link = base_url + recipe_link
         page = await browser.new_page()
-        page.set_default_timeout(5000)
+        page.set_default_timeout(30000)
         await page.goto(link)
         await page.wait_for_load_state("domcontentloaded")
 
@@ -118,6 +118,7 @@ async def get_recipe_data(semaphore, browser, recipe_link, pool):
             preparation_time = preparation_time_to_minutes(raw_preparation_time)
             number_of_ingredients = await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[2]/dd').inner_text()
             
+            page.set_default_timeout(5000)
             number_of_servings = 'N/A'
             if await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[3]/dt').inner_text() == 'Serves:':
                 if await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[3]/dd').count() > 0:
@@ -129,7 +130,7 @@ async def get_recipe_data(semaphore, browser, recipe_link, pool):
                     number_of_servings = await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[4]/dd').inner_text()
                 elif await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[4]/dd/div/span').count() > 0:
                     number_of_servings = await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[4]/dd/div/span').inner_text()
-                        
+            page.set_default_timeout(30000)
             if await page.locator('//*[@id="recipe"]/div[3]/div/div/a/span/div/span').count() > 0:
                 number_of_ratings = await page.locator('//*[@id="recipe"]/div[3]/div/div/a/span/div/span').inner_text()
             else:
