@@ -24,10 +24,10 @@ def save_state(state, state_file=STATE_FILE):
     with open(state_file, 'w') as f:
         json.dump(state, f)
 
-async def get_page_letter(browser):
+async def get_page_letter(page_queue):
     link = "https://www.food.com/browse/allrecipes/?page=1&letter=123"
 
-    page = await browser.new_page()
+    page = await page_queue.get()
     await page.goto(link)
     await page.wait_for_load_state("domcontentloaded")
 
@@ -46,10 +46,10 @@ async def get_page_letter(browser):
             else:
                 letter = await inner_li_element.locator('a').inner_text()
             letters.append(letter)
-    await page.close()
+    await page_queue.put(page)
     return letters
 
-async def get_recipe_links(browser, letters, pool, state):
+async def get_recipe_links(browser, letters, pool, state, page_queue):
     max_concurrent_scraping_tasks = 30
     semaphore = asyncio.Semaphore(max_concurrent_scraping_tasks)
     for letter in letters:
@@ -64,18 +64,18 @@ async def get_recipe_links(browser, letters, pool, state):
             start_page = 1
 
         page_url = f"https://www.food.com/browse/allrecipes/?page=1&letter={letter}"
-        page = await browser.new_page()
+        page = await page_queue.get()
         await page.goto(page_url)
         await page.wait_for_load_state("domcontentloaded")
         last_page = int(await page.locator('//li[@class="page  page-last  js-paging-after"]/a').inner_text())
-        await page.close()
+        await page_queue.put(page)
 
         for page_num in range(start_page, last_page + 1):
             tasks = []
             base_url = f"https://www.food.com/browse/allrecipes/?page={page_num}&letter={letter}"
             link = base_url.format(page_num=page_num, letter=letter)
                         
-            page = await browser.new_page()
+            page = await page_queue.get()
             await page.goto(link)
             await page.wait_for_load_state("domcontentloaded")
             recipe_section = page.locator('//div[@class="content-columns"]')
@@ -87,20 +87,20 @@ async def get_recipe_links(browser, letters, pool, state):
                     links = ul_section.locator('li').nth(li).locator('a')
                     for recipe_link in await links.element_handles():
                         r_link = await recipe_link.get_attribute('href')
-                        task = asyncio.create_task(get_recipe_data(semaphore, browser, r_link, pool))
+                        task = asyncio.create_task(get_recipe_data(semaphore, browser, r_link, pool, page_queue))
                         tasks.append(task)
-            await page.close()
+            await page_queue.put(page)
             if tasks:
                 await asyncio.gather(*tasks)
                 state['letter'] = letter
                 state['page'] = page_num
                 save_state(state)
 
-async def get_recipe_data(semaphore, browser, recipe_link, pool):
+async def get_recipe_data(semaphore, browser, recipe_link, pool, page_queue):
     async with semaphore:
         base_url = "https://www.food.com"
         link = base_url + recipe_link
-        page = await browser.new_page()
+        page = await page_queue.get()
         page.set_default_timeout(30000)
         await page.goto(link)
         await page.wait_for_load_state("domcontentloaded")
@@ -118,7 +118,7 @@ async def get_recipe_data(semaphore, browser, recipe_link, pool):
             preparation_time = preparation_time_to_minutes(raw_preparation_time)
             number_of_ingredients = await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[2]/dd').inner_text()
             
-            page.set_default_timeout(5000)
+            page.set_default_timeout(1000)
             number_of_servings = 'N/A'
             if await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[3]/dt').inner_text() == 'Serves:':
                 if await page.locator('//*[@id="recipe"]/div[9]/div/dl/div[3]/dd').count() > 0:
@@ -178,7 +178,7 @@ async def get_recipe_data(semaphore, browser, recipe_link, pool):
             print(e)
             return
         finally:
-            await page.close()
+            await page_queue.put(page)
         
 def preparation_time_to_minutes(raw_preparation_time):
     preparation_time = 0
@@ -296,14 +296,29 @@ def get_main_ingredient(ingredient):
         return None  # Skip adding this ingredient
     
     return ingredient
+
+async def make_page_queue(browser, page_queue, num_pages):
+    for _ in range(num_pages):
+        page = await browser.new_page()
+        await page_queue.put(page)
+    return page_queue
     
 async def main():
     state = load_state()
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         pool = await create_pool()
-        letters = await get_page_letter(browser=browser)
-        await get_recipe_links(browser=browser, letters=letters, pool=pool, state=state)
+        
+        page_queue = asyncio.Queue()
+        num_pages = 50
+        page_queue = await make_page_queue(browser, page_queue, num_pages)
+        letters = await get_page_letter(page_queue=page_queue)
+        await get_recipe_links(browser=browser, letters=letters, pool=pool, state=state, page_queue=page_queue)
+        
+        while not page_queue.empty():
+            page = await page_queue.get()
+            await page.close()
+            
         await pool.close()
         await browser.close()
 
