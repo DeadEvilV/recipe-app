@@ -319,7 +319,7 @@ async def main():
             page = await page_queue.get()
             await page.close()
             
-        await pool.close() 
+        await pool.close()
         await browser.close()
 
 if __name__ == "__main__":
