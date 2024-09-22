@@ -114,8 +114,8 @@ async def get_recipe_data(semaphore, browser, recipe_link, pool):
                 
                 ingredient_text = await li_element.inner_text()
                 ingredient_text = ingredient_text.replace('\n', ' ').strip()
-                # clean_ingredient = get_main_ingredient(ingredient_text)
-                # print(f"Cleaned ingredient: {clean_ingredient}")
+                clean_ingredient = get_main_ingredient(ingredient_text)
+                print(f"Cleaned ingredient: {clean_ingredient}")
                 ingredients_list.append({
                     'heading': current_heading,
                     'ingredient_text': ingredient_text
@@ -150,37 +150,98 @@ def preparation_time_to_minutes(raw_preparation_time):
         preparation_time += minutes
     return preparation_time
 
-async def get_main_ingredient(ingredient):
-    unwanted_terms = [
-    'teaspoon', 'tablespoon', 'cup', 'ounce', 'pound', 'lb', 'lbs', 'g', 'kg', 'ml', 'liter', 
-    'pinch', 'dash', 'amount', 'optional', 'or', 'fresh', 'large', 'medium', 'small', 
-    'whole', 'favorite', 'clove', 'grated', 'stalks', 'boiling'
-    ]
+def get_main_ingredient(ingredient):
+    # Remove any text in parentheses
+    ingredient = re.sub(r'\(.*?\)', '', ingredient)
     
     # Remove fractions and special characters like "⁄" or "/"
     ingredient = re.sub(r'[⁄/]', '', ingredient)
     
-    # Remove numbers and fractions (e.g., 1/2)
-    ingredient = re.sub(r'\d+\/\d+|\d+', '', ingredient)
-
-    # Tokenize the cleaned ingredient using Spacy
+    # Remove leading/trailing hyphens and non-word characters
+    ingredient = ingredient.strip("-–— ")
+    
+    # Remove quantities and units at the start
+    units = r'(teaspoon|tsp|tablespoon|tbsp|cup|cups|pint|quart|gallon|ounce|ounces|oz|pound|pounds|lb|lbs|gram|grams|g|kg|kilogram|kilograms|milliliter|ml|liter|liters|l|pinch|dash|can|cans|package|packages|pkg|bottle|bottles|jar|jars|slice|slices|clove|cloves|stalk|stalks|head|heads|inch|inches|strip|strips|piece|pieces|bag|bags|envelope|envelopes|box|boxes|container|containers|bulb|bulbs)'
+    numbers = r'(\d+\s*\d*\/?\d*|\d*\/\d+|\d+)'
+    patterns = [
+        r'^\s*[-–—]?\s*' + numbers + r'\s*' + units + r'\b\s*',
+        r'^\s*[-–—]?\s*' + numbers + r'\b\s*',
+        r'^\s*[-–—]?\s*' + units + r'\b\s*',
+    ]
+    for pattern in patterns:
+        ingredient = re.sub(pattern, '', ingredient, flags=re.IGNORECASE)
+    
+    # Remove any remaining numbers
+    ingredient = re.sub(r'\b\d+\b', '', ingredient)
+    
+    # Remove unwanted terms
+    unwanted_terms = [
+        'teaspoon', 'tsp', 'tablespoon', 'tbsp', 'cup', 'cups', 'pint', 'quart', 'gallon',
+        'ounce', 'ounces', 'oz', 'pound', 'pounds', 'lb', 'lbs', 'gram', 'grams', 'g', 'kg',
+        'kilogram', 'kilograms', 'milliliter', 'ml', 'liter', 'liters', 'l', 'pinch', 'dash',
+        'can', 'cans', 'package', 'packages', 'pkg', 'bottle', 'bottles', 'jar', 'jars',
+        'slice', 'slices', 'clove', 'cloves', 'stalk', 'stalks', 'head', 'heads', 'inch',
+        'inches', 'strip', 'strips', 'piece', 'pieces', 'bag', 'bags', 'envelope', 'envelopes',
+        'box', 'boxes', 'container', 'containers', 'bulb', 'bulbs', 'fresh', 'large', 'medium',
+        'small', 'extra', 'virgin', 'light', 'dark', 'packed', 'finely', 'coarsely', 'roughly',
+        'chopped', 'minced', 'grated', 'diced', 'sliced', 'ground', 'boneless', 'skinless',
+        'lean', 'fat-free', 'low-fat', 'reduced-fat', 'sweet', 'unsalted', 'salted', 'softened',
+        'room temperature', 'beaten', 'melted', 'shredded', 'cubed', 'peeled', 'seeded',
+        'halved', 'quartered', 'crushed', 'crumbled', 'warm', 'cold', 'hot', 'boiling', 'cooked',
+        'uncooked', 'frozen', 'thawed', 'dry', 'roasted', 'raw', 'rinsed', 'drained', 'divided',
+        'plus', 'more', 'less', 'to taste', 'taste', 'for', 'serving', 'garnish', 'needed',
+        'see', 'directions', 'instruction', 'and', 'or', 'with', 'without', 'as', 'desired',
+        'your', 'favorite', 'optional', 'about', 'good quality', 'approximately', 'heaping',
+        'scant', 'splash', 'handful', 'each', 'any amount', 'all-purpose', 'purpose',
+        'unbleached', 'bleached', 'white', 'self-rising', 'self rising', 'self', 'rising',
+        'active', 'dry', 'granulated', 'extra-virgin', 'confectioners', 'caster', 'powdered',
+        'brown', 'packed', 'firmly', 'lightly', 'firmly-packed', 'buttermilk', 'heavy',
+        'whipping', 'double', 'single', 'strong', 'freshly', 'fresh', 'filtered', 'store-bought',
+        'store bought', 'homemade', 'prepared', 'julienned', 'whole', 'broken', 'bottled',
+        'jarred', 'crushed', 'instant', 'quick', 'old-fashioned', 'steel-cut', 'fine', 'medium',
+        'coarse', 'instant', 'regular', 'quick-cooking', 'soft', 'hard', 'ripe', 'overripe',
+        'under-ripe', 'zest of', 'juice of', 'freshly squeezed', 'at room temperature',
+        'slightly beaten', 'lightly beaten', 'hard-boiled', 'soft-boiled', 'wedge', 'wedges',
+        'ring', 'rings', 'round', 'rounds', 'julienne', 'matchstick', 'lengthwise', 'crosswise',
+        'thick', 'thin', 'thickly', 'thinly', 'bite-size', 'bite sized', 'puree', 'purée',
+        'pureed', 'puréed', 'mashed', 'roughly chopped', 'lightly packed', 'ounces', 'tablespoons',
+        'teaspoons', 'pounds'
+    ]
+    # Add number words to unwanted terms
+    unwanted_terms.extend([
+        'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+        'half', 'quarter', 'third', 'dozen', 'several', 'few', 'couple', 'many', 'some'
+    ])
+    # Remove unwanted terms
+    for term in unwanted_terms:
+        pattern = r'\b' + re.escape(term) + r'\b'
+        ingredient = re.sub(pattern, '', ingredient, flags=re.IGNORECASE)
+    
+    # Remove extra whitespace and commas
+    ingredient = re.sub(r'[,]', '', ingredient)
+    ingredient = re.sub(r'\s+', ' ', ingredient).strip()
+    
+    # Lemmatize the words to standardize singular/plural
     doc = nlp(ingredient)
+    lemmatized_tokens = [token.lemma_ for token in doc if not token.is_stop and token.is_alpha]
+    if lemmatized_tokens:
+        ingredient = ' '.join(lemmatized_tokens)
+    else:
+        ingredient = ingredient  # fallback
     
-    # Filter out unwanted terms and measurement units
-    filtered_tokens = []
+    # Remove any remaining unwanted terms again
+    for term in unwanted_terms:
+        pattern = r'\b' + re.escape(term) + r'\b'
+        ingredient = re.sub(pattern, '', ingredient, flags=re.IGNORECASE)
     
-    for token in doc:
-        # Skip unwanted terms
-        if token.lemma_ in unwanted_terms or token.pos_ in ['DET', 'NUM']:
-            continue
-        # Capture the main noun phrases (consecutive nouns or noun + adjectives)
-        if token.pos_ in ["NOUN", "PROPN", "ADJ"]:
-            filtered_tokens.append(token.text)
+    # Remove extra whitespace
+    ingredient = re.sub(r'\s+', ' ', ingredient).strip()
     
-    # Join the cleaned tokens back into a single string
-    cleaned_ingredient = " ".join(filtered_tokens)
+    # If the ingredient is empty or only units/numbers, skip it
+    if not ingredient or ingredient.lower() in units.split('|') or ingredient.isdigit():
+        return None  # Skip adding this ingredient
     
-    return cleaned_ingredient.strip()
+    return ingredient
     
 async def main():
     async with async_playwright() as p:

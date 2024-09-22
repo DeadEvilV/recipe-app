@@ -61,20 +61,11 @@ async def create_tables(pool):
             """)
 
             await cursor.execute("""
-                CREATE TABLE IF NOT EXISTS IngredientsQuantity (
-                iq_id INT AUTO_INCREMENT PRIMARY KEY,
-                recipe_id INT NOT NULL,
-                ingredient_name VARCHAR(255) NOT NULL,
-                FOREIGN KEY (recipe_id) REFERENCES Recipes(recipe_id) ON DELETE CASCADE
-            )
-            """)
-
-            await cursor.execute("""
                 CREATE TABLE IF NOT EXISTS CleanIngredients (
                 clean_ingredient_id INT AUTO_INCREMENT PRIMARY KEY,
-                iq_id INT NOT NULL,
+                recipe_id INT NOT NULL,
                 clean_ingredient VARCHAR(255) NOT NULL,
-                FOREIGN KEY (iq_id) REFERENCES IngredientsQuantity(iq_id) ON DELETE CASCADE
+                FOREIGN KEY (recipe_id) REFERENCES Recipes(recipe_id) ON DELETE CASCADE
             )
             """)
 

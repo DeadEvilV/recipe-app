@@ -15,14 +15,9 @@ recipe_id: Foreign key linking the instruction to its corresponding recipe.
 step_number: The sequence of the step within the recipe.
 instruction: The actual instruction text for that step.
 
-IngredientsQuanitity Table:
-ingredient_quantity_id: Primary key to uniquely identify each ingredient.
-recipe_id: Foreign key linking the ingredient to its corresponding recipe.
-ingredient_name: The original ingredient name with quantities and units.
-
 CleanIngredients Table:
 clean_ingredient_id: Primary key.
-ingredient_quantity_id: Foreign key.
+recipe_id: Foreign key.
 clean_ingredient_name: The cleaned version of the ingredient name, without quantities and units, for AI processing.
 
 Categories Table:
