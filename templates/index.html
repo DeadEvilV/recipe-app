@@ -3,25 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <title>Recipe App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-<body>
-    <h1>Welcome to the Recipe App</h1>
+<body class="index-page">
+    <header>
+        <h1 class="main-title">Welcome to the Recipe App</h1>
+    </header>
 
-    <form action="/search" method="get">
-        <input type="text" name="query" placeholder="Search recipes...">
-        <button type="submit">Search</button>
+    <!-- Search Bar -->
+    <form action="/search" method="get" class="search-form">
+        <input type="text" class="search-input" name="search_query" placeholder="Search recipes...">
+        <button type="submit" class="search-button">Search</button>
     </form>
 
-    <h2>Categories</h2>
-    <form action="/categories" method="get">
-        <button type="submit">Browse by Category</button>
-    </form>
+    <!-- Categories Dropdown -->
+    <section class="categories-section">
+        <h2 class="section-title">Categories</h2>
+        <form id="categoryForm" class="category-form" onsubmit="return false;">
+            <select class="category-select" name="category_id" onchange="navigateToCategory(this)">
+                <option value="" selected disabled>Select a category</option>
+                {% for category in categories %}
+                <option value="{{ category.category_id }}">{{ category.category }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </section>
 
-    <h2>Random Recipes</h2>
-    <ul>
-        {% for recipe in random_recipes %}
-        <li><a href="{{ recipe.recipe_link }}">{{ recipe.recipe_name }}</a></li>
-        {% endfor %}
-    </ul>
+    <!-- Random Recipes -->
+    <section class="random-recipes-section">
+        <h2 class="section-title">Random Recipes</h2>
+        <ul class="random-recipes list-horizontal">
+            {% for recipe in recipe_links %}
+            <li class="recipe-item">
+                <a href="/recipe/{{ recipe[1] }}" class="recipe-link">{{ recipe[0] }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <script>
+        function navigateToCategory(selectElement) {
+            const categoryId = selectElement.value;
+            window.location.href = '/category/' + categoryId;
+        }
+    </script>
 </body>
 </html>

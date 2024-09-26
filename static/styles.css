@@ -1,0 +1,370 @@
+/* ------------------------------ */
+/* General Styles */
+/* ------------------------------ */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #fefefe;
+    margin: 0;
+    padding: 0;
+    color: #333;
+}
+
+header {
+    background-color: #ffefd5; /* PapayaWhip */
+    padding: 20px 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+h1, h2 {
+    color: #444;
+    margin: 0;
+    padding: 10px 0;
+}
+
+/* ------------------------------ */
+/* Index Page Styles (.index-page) */
+/* ------------------------------ */
+.index-page .main-title {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 2.5em;
+    color: #d2691e; /* Chocolate */
+}
+
+.index-page .search-form {
+    display: flex;
+    justify-content: center;
+    margin: 20px;
+}
+
+.index-page .search-input {
+    padding: 12px 20px;
+    width: 300px;
+    border: 2px solid #d3d3d3;
+    border-right: none;
+    border-radius: 4px 0 0 4px;
+    outline: none;
+    font-size: 1em;
+    transition: border-color 0.3s ease;
+}
+
+.index-page .search-input:focus {
+    border-color: #ff7f50; /* Coral */
+}
+
+.index-page .search-button {
+    padding: 12px 20px;
+    background-color: #ff7f50; /* Coral */
+    color: white;
+    border: 2px solid #ff7f50;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.index-page .search-button:hover {
+    background-color: #ff6347; /* Tomato */
+    transform: scale(1.05);
+}
+
+.index-page .categories-section {
+    text-align: center;
+    margin: 20px;
+}
+
+.index-page .section-title {
+    font-size: 1.8em;
+    margin-bottom: 10px;
+    color: #d2691e; /* Chocolate */
+}
+
+.index-page .category-form {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.index-page .category-select {
+    padding: 10px;
+    width: 220px;
+    border: 2px solid #d3d3d3;
+    border-radius: 4px;
+    background-color: #fff8dc; /* Cornsilk */
+    cursor: pointer;
+    font-size: 1em;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.index-page .category-select:focus {
+    border-color: #ff7f50; /* Coral */
+    background-color: #fff0f5; /* LavenderBlush */
+}
+
+.index-page .random-recipes-section {
+    padding: 20px;
+}
+
+.index-page .random-recipes.list-horizontal {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    padding: 10px 0;
+    margin: 0 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.index-page .random-recipes.list-horizontal::-webkit-scrollbar {
+    height: 8px;
+}
+
+.index-page .random-recipes.list-horizontal::-webkit-scrollbar-thumb {
+    background-color: #d3d3d3;
+    border-radius: 4px;
+}
+
+.index-page .recipe-item {
+    flex: 0 0 auto;
+    margin-right: 15px;
+}
+
+.index-page .recipe-link {
+    display: block;
+    padding: 20px;
+    background-color: #faf0e6; /* Linen */
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    text-align: center;
+    color: #333;
+    text-decoration: none;
+    min-width: 200px;
+    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.index-page .recipe-link:hover {
+    background-color: #ffe4e1; /* MistyRose */
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive Design for Index Page */
+@media (max-width: 768px) {
+    .index-page .search-input {
+        width: 200px;
+    }
+
+    .index-page .category-select {
+        width: 200px;
+    }
+
+    .index-page .random-recipes.list-horizontal .recipe-link {
+        min-width: 150px;
+    }
+}
+
+/* ------------------------------ */
+/* Category Recipes Page Styles (.category-page) */
+/* ------------------------------ */
+.category-page .category-title {
+    text-align: center;
+    margin: 30px 0;
+    font-size: 2.5em;
+    color: #d2691e; /* Chocolate */
+}
+
+.category-page .category-recipes-section {
+    padding: 20px;
+    background-color: #fff;
+    max-width: 800px;
+    margin: 0 auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.category-page .category-recipes-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.category-page .category-recipe-item {
+    margin-bottom: 15px;
+}
+
+.category-page .category-recipe-link {
+    text-decoration: none;
+    color: #337ab7; /* Blue */
+    padding: 15px;
+    display: block;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #fff8dc; /* Cornsilk */
+    transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+}
+
+.category-page .category-recipe-link:hover {
+    background-color: #ffe4e1; /* MistyRose */
+    color: #23527c; /* Darker Blue */
+    transform: scale(1.02);
+}
+
+/* ------------------------------ */
+/* Recipe Page Styles (.recipe-page) */
+/* ------------------------------ */
+.recipe-page .recipe-title {
+    text-align: center;
+    margin: 20px 0;
+    font-size: 2.5em;
+    color: #d2691e; /* Chocolate */
+}
+
+.recipe-page .recipe-basic-data-section {
+    max-width: 800px;
+    margin: 0 auto 20px auto;
+    padding: 15px;
+    background-color: #fff;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.recipe-page .recipe-basic-data {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    justify-content: space-around;
+    font-size: 1.1em;
+}
+
+.recipe-page .recipe-basic-data .recipe-data-item {
+    margin: 0 10px;
+    color: #555;
+}
+
+.recipe-page .recipe-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 10px;
+}
+
+.recipe-page .instructions-section,
+.recipe-page .ingredients-section {
+    background-color: #fff;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 10px;
+    width: 45%;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.recipe-page .instructions-section {
+    background-color: #faf0e6; /* Linen */
+}
+
+.recipe-page .ingredients-section {
+    background-color: #fff8dc; /* Cornsilk */
+}
+
+.recipe-page .section-title {
+    color: #d2691e; /* Chocolate */
+    margin-bottom: 15px;
+    font-size: 1.8em;
+    border-bottom: 2px solid #d2691e;
+    padding-bottom: 5px;
+}
+
+.recipe-page .instructions-list,
+.recipe-page .ingredients-list {
+    list-style: none;
+    padding: 0;
+}
+
+.recipe-page .instruction-item,
+.recipe-page .ingredient-item {
+    margin-bottom: 10px;
+    font-size: 1em;
+    line-height: 1.5;
+    color: #555;
+}
+
+.recipe-page .ingredient-heading {
+    font-weight: bold;
+    margin-top: 15px;
+    font-size: 1.2em;
+    color: #d2691e; /* Chocolate */
+}
+
+.recipe-page .ingredients-list .ingredient-item {
+    margin-left: 20px;
+    list-style-type: disc;
+    color: #555;
+}
+
+/* Responsive Design for Recipe Page */
+@media (max-width: 768px) {
+    .recipe-page .recipe-container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .recipe-page .instructions-section,
+    .recipe-page .ingredients-section {
+        width: 90%;
+    }
+}
+
+/* ------------------------------ */
+/* Additional Styles */
+/* ------------------------------ */
+
+/* Links */
+a {
+    color: #337ab7;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Lists */
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+/* Buttons and Interactive Elements */
+button, .search-button {
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+button:focus, .search-button:focus, .category-select:focus {
+    outline: none;
+    box-shadow: 0 0 5px rgba(255, 127, 80, 0.6); /* Coral Glow */
+}
+
+/* ------------------------------ */
+/* Color Palette */
+/* ------------------------------ */
+/*
+Primary Colors:
+- Chocolate (#d2691e)
+- Coral (#ff7f50)
+- MistyRose (#ffe4e1)
+- Linen (#faf0e6)
+- Cornsilk (#fff8dc)
+- Blue (#337ab7)
+
+Neutral Colors:
+- White (#fff)
+- Light Gray (#d3d3d3)
+- Dark Gray (#555)
+- Black (#333)
+*/

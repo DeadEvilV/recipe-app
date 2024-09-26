@@ -1,11 +1,11 @@
-from flask import Flask, render_template, request, jsonify, abort
+from flask import Flask, render_template, request
 from sqlalchemy import create_engine, text
-import random
+import ast
 
 app = Flask(__name__)
 
-DATABASE_URL = 'mysql+mysqlconnector://avnadmin:AVNS_fL1GBLVBNF4rHJjxi8v@mysql-food-suggester-food-suggester.h.aivencloud.com:16180/food-suggester'
-engine = create_engine(DATABASE_URL)
+DATABASE_URI = 'mysql+mysqlconnector://avnadmin:AVNS_fL1GBLVBNF4rHJjxi8v@mysql-food-suggester-food-suggester.h.aivencloud.com:16180/food-suggester'
+engine = create_engine(DATABASE_URI)
 
 @app.route('/')
 def index():
@@ -13,7 +13,16 @@ def index():
         random_recipes = connection.execute(text(
             "SELECT recipe_name, recipe_link FROM Recipes ORDER BY RAND() LIMIT 20"
         )).fetchall()
-    return render_template('index.html', random_recipes=random_recipes)
+        categories = connection.execute(text(
+            "SELECT category_id, category FROM Categories ORDER BY category ASC"
+        )).fetchall()
+        recipe_links = []
+        for recipe in random_recipes:
+            name, url = recipe
+            replace_string = 'https://www.food.com/recipe/'
+            recipe_link = url.replace(replace_string, '')
+            recipe_links.append((name, recipe_link))
+    return render_template('index.html', recipe_links=recipe_links, categories=categories)
 
 @app.route('/search', methods=['GET'])
 def search_recipes():
@@ -25,14 +34,6 @@ def search_recipes():
             ), {'query': f'%{query}%'}).fetchall()
         return render_template('search_results.html', results=results, query=query)
     return render_template('search_results.html', results=[], query='')
-
-@app.route('/categories')
-def categories():
-    with engine.connect() as connection:
-        categories = connection.execute(text(
-            "SELECT category_id, category FROM Categories ORDER BY category ASC"
-        )).fetchall()
-    return render_template('categories.html', categories=categories)
 
 @app.route('/category/<int:category_id>')
 def category_recipes(category_id):
@@ -49,13 +50,23 @@ def category_recipes(category_id):
         category_name = category_name_query[0]
     return render_template('category_recipes.html', recipes=recipes, category_name=category_name)
 
-@app.route('/random_recipes', methods=['GET'])
-def random_recipes():
+@app.route('/recipe/<path:recipe_link>')
+def go_to_recipe(recipe_link):
     with engine.connect() as connection:
-        random_recipes = connection.execute(text(
-            "SELECT recipe_name, recipe_link FROM Recipes ORDER BY RAND() LIMIT 10"
-        )).fetchall()
-    return jsonify([dict(recipe) for recipe in random_recipes])
-
+        base_url = 'https://www.food.com/recipe/'
+        full_recipe_link = base_url + recipe_link
+        get_recipe_data = connection.execute(text(
+            "SELECT recipe_id, recipe_name, number_of_ingredients, number_of_servings, preparation_time, ingredients_list FROM Recipes WHERE recipe_link = :full_recipe_link"
+        ), {'full_recipe_link': full_recipe_link}).fetchone()
+        if get_recipe_data:
+            recipe_id = get_recipe_data[0]
+            get_category = connection.execute(text(
+            "SELECT c.category_id, c.category FROM RecipeCategory rc JOIN Categories c ON rc.category_id = c.category_id WHERE rc.recipe_id = :recipe_id"
+        ), {'recipe_id': recipe_id}).fetchone()
+            get_recipe_instructions = connection.execute(text(
+                "SELECT step_number, instruction FROM Instructions WHERE recipe_id = :recipe_id"
+            ), {'recipe_id': recipe_id}).fetchall()
+            ingredients_list = ast.literal_eval(get_recipe_data.ingredients_list)
+    return render_template('recipe_page.html', get_recipe_data=get_recipe_data, ingredients_list=ingredients_list, get_category=get_category, get_recipe_instructions=get_recipe_instructions)
 if __name__ == '__main__':
     app.run(debug=True)

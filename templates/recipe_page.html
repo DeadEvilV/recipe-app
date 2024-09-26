@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ get_recipe_data.recipe_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="recipe-page">
+    <header>
+        <h2 class="recipe-title">{{ get_recipe_data.recipe_name }}</h2>
+    </header>
+
+    <!-- Basic Recipe Data -->
+    <section class="recipe-basic-data-section">
+        <ul class="recipe-basic-data">
+            <li class="recipe-data-item">Number of ingredients: {{ get_recipe_data.number_of_ingredients }}</li>
+            <li class="recipe-data-item">Number of servings: {{ get_recipe_data.number_of_servings }}</li>
+            <li class="recipe-data-item">Preparation Time: {{ get_recipe_data.preparation_time }} minutes</li>
+        </ul>
+    </section>
+
+    <!-- Recipe Details -->
+    <div class="recipe-container">
+        <!-- Ingredients -->
+        <div class="ingredients-section">
+            <h2 class="section-title">Ingredients</h2>
+            <ul class="ingredients-list">
+                {% if ingredients_list %}
+                    {% set current_heading = None %}
+                    {% for ingredient in ingredients_list %}
+                        {% if loop.first or ingredient.heading != ingredients_list[loop.index0 - 1].heading %}
+                            {% if ingredient.heading %}
+                                <li class="ingredient-heading"><strong>{{ ingredient.heading }}</strong></li>
+                            {% endif %}
+                            {% set current_heading = ingredient.heading %}
+                        {% endif %}
+                        <li class="ingredient-item">{{ ingredient.ingredient_text }}</li>
+                    {% endfor %}
+                {% else %}
+                    <li>No ingredients available.</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Instructions -->
+        <div class="instructions-section">
+            <h2 class="section-title">Instructions</h2>
+            <ul class="instructions-list">
+                {% if get_recipe_instructions %}
+                    {% for instruction in get_recipe_instructions %}
+                        <li class="instruction-item">{{ instruction.step_number }}. {{ instruction.instruction }}</li>
+                    {% endfor %}
+                {% else %}
+                    <li>No instructions available.</li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

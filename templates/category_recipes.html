@@ -2,14 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Category Recipes</title>
+    <title>Category Recipes - {{ category_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-<body>
-    <h1>Recipes in Category {{ category_name }}</h1>
-    <ul>
-        {% for recipe in recipes %}
-        <li><a href="{{ recipe.recipe_link }}">{{ recipe.recipe_name }}</a></li>
-        {% endfor %}
-    </ul>
+<body class="category-page">
+    <header>
+        <h1 class="category-title">Recipes in Category: {{ category_name }}</h1>
+    </header>
+
+    <section class="category-recipes-section">
+        <ul class="category-recipes-list">
+            {% for recipe in recipes %}
+            <li class="category-recipe-item">
+                <a href="{{ recipe.recipe_link }}" class="category-recipe-link">{{ recipe.recipe_name }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
 </body>
 </html>
