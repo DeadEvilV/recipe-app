@@ -1,13 +1,82 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 from sqlalchemy import create_engine, text
+from flask_login import LoginManager, login_user, logout_user, login_required, UserMixin
 import ast
 
 app = Flask(__name__)
+app.secret_key = 'DUH342I54hF2IUdHaIHFGHE'
 
 DATABASE_URI = 'mysql+mysqlconnector://avnadmin:AVNS_fL1GBLVBNF4rHJjxi8v@mysql-food-suggester-food-suggester.h.aivencloud.com:16180/food-suggester'
 engine = create_engine(DATABASE_URI)
 
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+class User(UserMixin):
+    def __init__(self, id, username, password):
+        self.id = id
+        self.username = username
+        self.password = password
+
+def create_user_table():
+    create_users_table_query = """
+    CREATE TABLE IF NOT EXISTS Users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(100) NOT NULL
+    )
+    """
+    with engine.connect() as connection:
+        connection.execute(text(create_users_table_query))
+
+@login_manager.user_loader
+def load_user(user_id):
+    with engine.connect() as connection:
+        user = connection.execute(text("SELECT id, username, password FROM Users WHERE id = :id"),
+                                  {'id': user_id}).fetchone()
+        if user:
+            return User(id=user.id, username=user.username, password=user.password)
+        return None
+    
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        with engine.connect() as connection:
+            user = connection.execute(text("SELECT id, username, password FROM Users WHERE username = :username AND password = :password"), 
+                                      {'username': username, 'password': password}).fetchone()
+            if user:
+                login_user(User(id=user.id, username=user.username, password=user.password))
+                return redirect(url_for('index'))
+        return 'Invalid credentials'
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        with engine.begin() as connection:
+            existing_user = connection.execute(text("SELECT id from Users WHERE username = :username"),
+                                               {'username': username}).fetchone()
+            if existing_user:
+                return 'Username already exists'
+            
+            connection.execute(text("INSERT INTO Users (username, password) VALUES (:username, :password)"), 
+                               {'username': username, 'password': password})
+            return redirect(url_for('login'))
+    return render_template('register.html')
+
 @app.route('/')
+@login_required
 def index():
     with engine.connect() as connection:
         random_recipes = connection.execute(text(
@@ -25,6 +94,7 @@ def index():
     return render_template('index.html', recipe_links=recipe_links, categories=categories)
 
 @app.route('/category/<int:category_id>')
+@login_required
 def category_recipes(category_id):
     with engine.connect() as connection:
         recipes = connection.execute(text(
@@ -40,6 +110,7 @@ def category_recipes(category_id):
     return render_template('category_recipes.html', recipes=recipes, category_name=category_name)
 
 @app.route('/recipe/<path:recipe_link>')
+@login_required
 def go_to_recipe(recipe_link):
     with engine.connect() as connection:
         base_url = 'https://www.food.com/recipe/'
@@ -59,6 +130,7 @@ def go_to_recipe(recipe_link):
     return render_template('recipe_page.html', get_recipe_data=get_recipe_data, ingredients_list=ingredients_list, get_category=get_category, get_recipe_instructions=get_recipe_instructions)
 
 @app.route('/search', methods=['GET'])
+@login_required
 def search():
     search_query = str(request.args.get('search_query')).lower()
     if search_query:
@@ -76,6 +148,7 @@ def search():
         return render_template('search_results.html', search_query=search_query, search_results=recipe_links)
     return render_template('search_results.html', search_query=search_query, search_results=[])
             
-    
 if __name__ == '__main__':
+    create_user_table()
+
     app.run(debug=True)
