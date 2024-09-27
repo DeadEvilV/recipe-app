@@ -1,18 +1,51 @@
 /* ------------------------------ */
-/* General Styles */
+/* Color Palette */
 /* ------------------------------ */
+/*
+Primary Colors:
+- Chocolate (#d2691e)
+- Coral (#ff7f50)
+- MistyRose (#ffe4e1)
+- Linen (#faf0e6)
+- Cornsilk (#fff8dc)
+- Blue (#337ab7)
+
+Neutral Colors:
+- White (#fff)
+- Light Gray (#d3d3d3)
+- Dark Gray (#555)
+- Black (#333)
+*/
+
+/* ------------------------------ */
+/* CSS Reset */
+/* ------------------------------ */
+/* Ensures consistency across different browsers */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #fefefe;
-    margin: 0;
-    padding: 0;
     color: #333;
+    line-height: 1.6;
 }
 
+/* ------------------------------ */
+/* General Styles */
+/* ------------------------------ */
 header {
     background-color: #ffefd5; /* PapayaWhip */
     padding: 20px 0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
 }
 
 h1, h2 {
@@ -321,6 +354,90 @@ h1, h2 {
 }
 
 /* ------------------------------ */
+/* Search Results Page Styles (.search-page) */
+/* ------------------------------ */
+
+/* Header Title */
+.search-page .search-title {
+    text-align: center;
+    color: #d2691e; /* Chocolate */
+    font-size: 2em;
+    margin-bottom: 20px;
+}
+
+/* Search Results Section */
+.search-page .search-results-section {
+    padding: 20px;
+    background-color: #fff;
+    max-width: 800px;
+    margin: 30px auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Search Results List */
+.search-page .search-results-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Search Result Items */
+.search-page .search-result-item {
+    margin-bottom: 15px;
+}
+
+/* Search Result Links */
+.search-page .search-result-link {
+    text-decoration: none;
+    color: #337ab7; /* Blue */
+    padding: 15px;
+    display: block;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #fff8dc; /* Cornsilk */
+    transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+}
+
+.search-page .search-result-link:hover {
+    background-color: #ffe4e1; /* MistyRose */
+    color: #23527c; /* Darker Blue */
+    transform: scale(1.02);
+}
+
+/* No Results Found Message */
+.search-page .no-results-message {
+    text-align: center;
+    font-size: 1.2em;
+    color: #555;
+    background-color: #faf0e6; /* Linen */
+    padding: 15px;
+    border-radius: 6px;
+}
+
+/* Responsive Design for Search Results */
+@media (max-width: 768px) {
+    .search-page .search-title {
+        font-size: 1.8em;
+    }
+
+    .search-page .search-results-section {
+        margin: 20px;
+        padding: 15px;
+    }
+
+    .search-page .search-result-link {
+        padding: 12px;
+        font-size: 0.95em;
+    }
+
+    .search-page .no-results-message {
+        font-size: 1em;
+        padding: 12px;
+    }
+}
+
+/* ------------------------------ */
 /* Additional Styles */
 /* ------------------------------ */
 
@@ -328,10 +445,12 @@ h1, h2 {
 a {
     color: #337ab7;
     text-decoration: none;
+    transition: color 0.3s ease;
 }
 
 a:hover {
     text-decoration: underline;
+    color: #23527c;
 }
 
 /* Lists */
@@ -345,26 +464,21 @@ button, .search-button {
     transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
-button:focus, .search-button:focus, .category-select:focus {
+button:focus, .search-button:focus, .category-select:focus, .search-result-link:focus, .category-recipe-link:focus {
     outline: none;
     box-shadow: 0 0 5px rgba(255, 127, 80, 0.6); /* Coral Glow */
 }
 
 /* ------------------------------ */
-/* Color Palette */
+/* Utility Classes */
 /* ------------------------------ */
-/*
-Primary Colors:
-- Chocolate (#d2691e)
-- Coral (#ff7f50)
-- MistyRose (#ffe4e1)
-- Linen (#faf0e6)
-- Cornsilk (#fff8dc)
-- Blue (#337ab7)
 
-Neutral Colors:
-- White (#fff)
-- Light Gray (#d3d3d3)
-- Dark Gray (#555)
-- Black (#333)
-*/
+/* Centered Content */
+.centered {
+    text-align: center;
+}
+
+/* Hidden Elements */
+.hidden {
+    display: none;
+}

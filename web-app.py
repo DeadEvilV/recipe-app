@@ -24,17 +24,6 @@ def index():
             recipe_links.append((name, recipe_link))
     return render_template('index.html', recipe_links=recipe_links, categories=categories)
 
-@app.route('/search', methods=['GET'])
-def search_recipes():
-    query = request.args.get('query')
-    if query:
-        with engine.connect() as connection:
-            results = connection.execute(text(
-                "SELECT recipe_name, recipe_link FROM Recipes WHERE recipe_name LIKE :query"
-            ), {'query': f'%{query}%'}).fetchall()
-        return render_template('search_results.html', results=results, query=query)
-    return render_template('search_results.html', results=[], query='')
-
 @app.route('/category/<int:category_id>')
 def category_recipes(category_id):
     with engine.connect() as connection:
@@ -68,5 +57,25 @@ def go_to_recipe(recipe_link):
             ), {'recipe_id': recipe_id}).fetchall()
             ingredients_list = ast.literal_eval(get_recipe_data.ingredients_list)
     return render_template('recipe_page.html', get_recipe_data=get_recipe_data, ingredients_list=ingredients_list, get_category=get_category, get_recipe_instructions=get_recipe_instructions)
+
+@app.route('/search', methods=['GET'])
+def search():
+    search_query = str(request.args.get('search_query')).lower()
+    if search_query:
+        with engine.connect() as connection:
+            search_results = connection.execute(text(
+                "SELECT LOWER(recipe_name), recipe_link FROM Recipes WHERE recipe_name LIKE :search_query"
+            ), {'search_query': f'%{search_query}%'}).fetchall()
+            
+            recipe_links = []
+            for recipe in search_results:
+                name, url = recipe
+                replace_string = 'https://www.food.com/recipe/'
+                recipe_link = url.replace(replace_string, '')
+                recipe_links.append((name, recipe_link))
+        return render_template('search_results.html', search_query=search_query, search_results=recipe_links)
+    return render_template('search_results.html', search_query=search_query, search_results=[])
+            
+    
 if __name__ == '__main__':
     app.run(debug=True)

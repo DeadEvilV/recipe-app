@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Search results for: '{{ search_query }}'</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="search-page">
+    <header>
+        <h1 class="search-title">Search results for: '{{ search_query }}'</h1>
+    </header>
+
+    <section class="search-results-section">
+        <ul class="search-results-list">
+            {% if search_results %}
+                {% for name, url in search_results %}
+                <li class="search-result-item">
+                    <a href="/recipe/{{ url }}" class="search-result-link">{{ name }}</a>
+                </li>
+                {% endfor %}
+            {% else %}
+            <li class="no-results-message">
+                No results found
+            </li>
+            {% endif %}
+        </ul>
+    </section>
+</body>
+</html>
