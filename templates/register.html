@@ -10,15 +10,24 @@
         <h1>Register</h1>
     </header>
     <section>
-        <form method="POST" action="{{ url_for('register') }}">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
-            <br>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-            <br>
+        <form method="POST">
+            <div>
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div>
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div>
+                <label for="ingredients">Select Your Preferred Ingredients:</label><br>
+                {% for ingredient in ingredients %}
+                    <input type="checkbox" name="ingredients" value="{{ ingredient }}"> {{ ingredient }}<br>
+                {% endfor %}
+            </div>
             <button type="submit">Register</button>
         </form>
+        
     </section>
 </body>
 </html>

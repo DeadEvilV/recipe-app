@@ -27,3 +27,17 @@ category: The category.
 RecipeCategory:
 category_id: Primary and Foreign key to uniquely identify each category.
 recipe_id: Primary and Foreign key linking the category to its corresponding recipe.
+
+Bookmarks Table:
+bookmark_id: Primary key to uniquely identify each bookmark.
+user_id: Foreign key linking to the user.
+recipe_id: Foreign key linking to the recipe.
+timestamp: The date and time when the bookmark was added.
+
+Ratings Table:
+rating_id: Primary key to uniquely identify each rating.
+user_id: Foreign key linking to the user.
+recipe_id: Foreign key linking to the recipe.
+rating: Integer value representing the user’s rating (e.g., 1-5 stars).
+timestamp: The date and time when the rating was submitted or updated.
+

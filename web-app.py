@@ -19,7 +19,7 @@ class User(UserMixin):
         self.username = username
         self.password = password
 
-def create_user_table():
+def create_tables():
     create_users_table_query = """
     CREATE TABLE IF NOT EXISTS Users (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -27,8 +27,19 @@ def create_user_table():
     password VARCHAR(100) NOT NULL
     )
     """
+    
+    create_user_preferences_table_query = """
+    CREATE TABLE IF NOT EXISTS UserPreferences (
+    user_preference_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    ingredient_name VARCHAR(100),
+    FOREIGN KEY (user_id) REFERENCES Users(id)
+    )
+    """
+    
     with engine.connect() as connection:
         connection.execute(text(create_users_table_query))
+        connection.execute(text(create_user_preferences_table_query))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -64,16 +75,35 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        selected_ingredients = request.form.getlist('ingredients')
+        
         with engine.begin() as connection:
-            existing_user = connection.execute(text("SELECT id from Users WHERE username = :username"),
-                                               {'username': username}).fetchone()
-            if existing_user:
-                return 'Username already exists'
+            connection.execute(text("""
+                INSERT INTO Users (username, password) 
+                VALUES (:username, :password)
+            """), {'username': username, 'password': password})
             
-            connection.execute(text("INSERT INTO Users (username, password) VALUES (:username, :password)"), 
-                               {'username': username, 'password': password})
-            return redirect(url_for('login'))
-    return render_template('register.html')
+            user_id = connection.execute(text("SELECT LAST_INSERT_ID()")).fetchone()[0]
+            
+            for ingredient in selected_ingredients:
+                connection.execute(text("""
+                    INSERT INTO UserPreferences (user_id, ingredient_name)
+                    VALUES (:user_id, :ingredient_name)
+                """), {'user_id': user_id, 'ingredient_name': ingredient})
+        
+        return redirect(url_for('login'))
+    else:
+        with engine.connect() as connection:
+            top_ingredients = connection.execute(text("""
+                SELECT clean_ingredient
+                FROM CleanIngredients
+                GROUP BY clean_ingredient
+                ORDER BY COUNT(*) DESC
+                LIMIT 100
+            """)).fetchall()
+            top_ingredients = [row[0] for row in top_ingredients]
+        
+        return render_template('register.html', ingredients=top_ingredients)
 
 @app.route('/')
 @login_required
@@ -149,6 +179,6 @@ def search():
     return render_template('search_results.html', search_query=search_query, search_results=[])
             
 if __name__ == '__main__':
-    create_user_table()
+    create_tables()
 
     app.run(debug=True)
