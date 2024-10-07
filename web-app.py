@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for
 from sqlalchemy import create_engine, text
 from flask_login import LoginManager, login_user, logout_user, login_required, UserMixin
 import ast
+import pandas as pd
 
 app = Flask(__name__)
 app.secret_key = 'DUH342I54hF2IUdHaIHFGHE'
@@ -21,25 +22,35 @@ class User(UserMixin):
 
 def create_tables():
     create_users_table_query = """
-    CREATE TABLE IF NOT EXISTS Users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password VARCHAR(100) NOT NULL
-    )
+        CREATE TABLE IF NOT EXISTS Users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password VARCHAR(100) NOT NULL
+        )
     """
     
-    create_user_preferences_table_query = """
-    CREATE TABLE IF NOT EXISTS UserPreferences (
-    user_preference_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
-    ingredient_name VARCHAR(100),
-    FOREIGN KEY (user_id) REFERENCES Users(id)
-    )
+    create_user_preferences_ingredients_table_query = """
+        CREATE TABLE IF NOT EXISTS UserPreferencesIngredients (
+        user_preference_ingredients_id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT,
+        ingredient_name VARCHAR(100),
+        FOREIGN KEY (user_id) REFERENCES Users(id)
+        )
+    """
+    
+    create_user_preferences_categories_table_query = """
+        CREATE TABLE IF NOT EXISTS UserPreferencesCategories (
+        user_preference_categories_id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT,
+        category VARCHAR(100),
+        FOREIGN KEY (user_id) REFERENCES Users(id)
+        )
     """
     
     with engine.connect() as connection:
         connection.execute(text(create_users_table_query))
-        connection.execute(text(create_user_preferences_table_query))
+        connection.execute(text(create_user_preferences_ingredients_table_query))
+        connection.execute(text(create_user_preferences_categories_table_query))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -76,6 +87,7 @@ def register():
         username = request.form['username']
         password = request.form['password']
         selected_ingredients = request.form.getlist('ingredients')
+        selected_categories = request.form.getlist('categories')
         
         with engine.begin() as connection:
             connection.execute(text("""
@@ -87,10 +99,15 @@ def register():
             
             for ingredient in selected_ingredients:
                 connection.execute(text("""
-                    INSERT INTO UserPreferences (user_id, ingredient_name)
+                    INSERT INTO UserPreferencesIngredients (user_id, ingredient_name)
                     VALUES (:user_id, :ingredient_name)
                 """), {'user_id': user_id, 'ingredient_name': ingredient})
-        
+
+            for category in selected_categories:
+                connection.execute(text("""
+                    INSERT INTO UserPreferencesCategories (user_id, category)
+                    VALUES (:user_id, category)
+                """), {'user_id': user_id, 'category': category})
         return redirect(url_for('login'))
     else:
         with engine.connect() as connection:
@@ -102,8 +119,14 @@ def register():
                 LIMIT 100
             """)).fetchall()
             top_ingredients = [row[0] for row in top_ingredients]
-        
-        return render_template('register.html', ingredients=top_ingredients)
+            
+            categories = connection.execute(text("""
+                SELECT category
+                FROM Categories
+                """)).fetchall()
+            categories = [row[0] for row in categories]
+
+        return render_template('register.html', ingredients=top_ingredients, categories=categories)
 
 @app.route('/')
 @login_required
@@ -178,6 +201,30 @@ def search():
         return render_template('search_results.html', search_query=search_query, search_results=recipe_links)
     return render_template('search_results.html', search_query=search_query, search_results=[])
             
+def get_user_profile(user_id):
+    with engine.connect as connection:
+        preferred_ingredients = connection.execute(text("""
+            SELECT ingredient_name
+            FROM UserPreferencesIngredients
+            WHERE user_id = :user_id
+        """), {'user_id': user_id}).fetchall()
+        
+        preferred_categories = connection.execute(text("""
+            SELECT category
+            FROM UserPreferencesCategories
+            WHERE user_id = :user_id
+        """), {'user_id': user_id}).fetchall()
+
+        preferred_ingredients = [row[0] for row in preferred_ingredients]
+        preferred_categories = [row[0] for row in preferred_categories]
+        
+        user_profile = {
+            'preferred_ingredients': preferred_ingredients,
+            'preferred_categories': preferred_categories
+        }
+        
+        return user_profile
+    
 if __name__ == '__main__':
     create_tables()
 

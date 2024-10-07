@@ -20,7 +20,13 @@
                 <input type="password" id="password" name="password" required>
             </div>
             <div>
-                <label for="ingredients">Select Your Preferred Ingredients:</label><br>
+                <label for ="categories">Select your preferred categories:</label><br>
+                {% for category in categories %}
+                    <input type="checkbox" name="categories" value="{{category}}"> {{category}}<br>
+                {% endfor %}
+            </div>
+            <div>
+                <label for="ingredients">Select your preferred ingredients:</label><br>
                 {% for ingredient in ingredients %}
                     <input type="checkbox" name="ingredients" value="{{ ingredient }}"> {{ ingredient }}<br>
                 {% endfor %}
