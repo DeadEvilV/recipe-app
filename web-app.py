@@ -202,7 +202,7 @@ def search():
     return render_template('search_results.html', search_query=search_query, search_results=[])
             
 def get_user_profile(user_id):
-    with engine.connect as connection:
+    with engine.connect() as connection:
         preferred_ingredients = connection.execute(text("""
             SELECT ingredient_name
             FROM UserPreferencesIngredients
@@ -225,7 +225,45 @@ def get_user_profile(user_id):
         
         return user_profile
     
+def preprocess_data():
+    with engine.connect() as connection:
+        recipe_data = connection.execute(text("""
+        SELECT R.recipe_id, R.recipe_name, C.category, R.number_of_ingredients, R.number_of_steps,
+        R.number_of_servings, R.preparation_time, R.number_of_ratings, R.recipe_link,
+        GROUP_CONCAT(I.clean_ingredient SEPARATOR ', ') AS ingredients
+        FROM Recipes R
+        JOIN RecipeCategory RC on RC.recipe_id = R.recipe_id
+        JOIN Categories C on C.category_id = RC.category_id
+        LEFT JOIN CleanIngredients I on I.recipe_id = R.recipe_id
+        GROUP BY R.recipe_id, R.recipe_name, C.category, R.number_of_ingredients, R.number_of_steps,
+        R.number_of_servings, R.preparation_time, R.number_of_ratings, R.recipe_link
+        
+        """)).fetchall()
+        column_names = ['recipe_id', 'recipe_name', 'category', 'number_of_ingredients',
+                        'ingredients', 'number_of_steps', 'number_of_servings',
+                        'preparation_time', 'number_of_ratings', 'recipe_link']
+        recipe_list = []
+        for recipe in recipe_data:
+            number_of_servings = recipe[5].split('-')
+            if len(number_of_servings) > 1:
+                number_of_servings = str(int(number_of_servings[0]) + int(number_of_servings[1]))
+            recipe_dict = {
+                'recipe_id': recipe[0],
+                'recipe_name': recipe[1].lower(),
+                'category': recipe[2].lower(),
+                'number_of_ingredients': recipe[3],
+                'number_of_steps': recipe[4],
+                'number_of_servings': number_of_servings,
+                'preparation_time': recipe[6],
+                'number_of_ratings': recipe[7],
+                'recipe_link': recipe[8].lower(),
+                'ingredients': recipe[9].lower()
+            }
+            recipe_list.append(recipe_dict)
+    recipe_df = pd.DataFrame(recipe_list, columns=column_names)
+    print(recipe_df['ingredients'])
+
 if __name__ == '__main__':
     create_tables()
-
+    preprocess_data()
     app.run(debug=True)
