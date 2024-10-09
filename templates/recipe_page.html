@@ -56,5 +56,9 @@
             </ul>
         </div>
     </div>
+    <form action="{{ url_for('like_recipe') }}" method="POST">
+        <input type="hidden" name="recipe_id" value="{{ get_recipe_data[0] }}">
+        <button type="submit">Like</button>
+    </form>
 </body>
 </html>

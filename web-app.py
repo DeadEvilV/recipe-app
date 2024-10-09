@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 from sqlalchemy import create_engine, text
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required, UserMixin
 from flask_caching import Cache
@@ -57,10 +57,35 @@ def create_tables():
         )
     """
     
+    create_user_preferences_likes_table_query = """
+        CREATE TABLE IF NOT EXISTS UserPreferencesLikes (
+        user_preference_categories_id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        recipe_id INT NOT NULL,
+        clicked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES Users(id),
+        FOREIGN KEY (recipe_id) REFERENCES Recipes(recipe_id)
+        )
+    """
+    
+    create_user_preferences_clicks_table_query = """
+        CREATE TABLE IF NOT EXISTS UserPreferencesClicks (
+        user_click_id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        recipe_id INT NOT NULL,
+        clicked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES Users(id),
+        FOREIGN KEY (recipe_id) REFERENCES Recipes(recipe_id)
+        )
+    """
+    
+    
     with engine.connect() as connection:
         connection.execute(text(create_users_table_query))
         connection.execute(text(create_user_preferences_ingredients_table_query))
         connection.execute(text(create_user_preferences_categories_table_query))
+        connection.execute(text(create_user_preferences_likes_table_query))
+        connection.execute(text(create_user_preferences_clicks_table_query))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -185,6 +210,12 @@ def go_to_recipe(recipe_link):
         ), {'full_recipe_link': full_recipe_link}).fetchone()
         if get_recipe_data:
             recipe_id = get_recipe_data[0]
+            user_id = current_user.id
+            connection.execute(text("""
+                INSERT INTO UserPreferencesClicks (user_id, recipe_id)
+                VALUES (:user_id, :recipe_id)
+            """), {'user_id': user_id, 'recipe_id': recipe_id})
+
             get_category = connection.execute(text(
             "SELECT c.category_id, c.category FROM RecipeCategory rc JOIN Categories c ON rc.category_id = c.category_id WHERE rc.recipe_id = :recipe_id"
         ), {'recipe_id': recipe_id}).fetchone()
@@ -275,7 +306,7 @@ def preprocess_data():
             ingredients = [word_tokenize(ingredient.strip()) for ingredient in ingredients]
             recipe_dict = {
                 'recipe_id': int(recipe[0]),
-                'recipe_name': word_tokenize(recipe[1].lower()),
+                'recipe_name': recipe[1].lower(),
                 'category': recipe[2].lower(),
                 'number_of_ingredients': int(recipe[3]),
                 'number_of_steps': int(recipe[4]),
@@ -290,6 +321,28 @@ def preprocess_data():
     recipe_df = pd.get_dummies(recipe_df, columns=['category'])
     category_columns = [col for col in recipe_df.columns if col.startswith('category_')]
     return recipe_df, category_columns
+
+def get_recipe_link_after_like(recipe_id):
+    with engine.connect() as connection:
+        recipe_link = connection.execute(text("SELECT recipe_link FROM Recipes WHERE recipe_id = :recipe_id"),
+        {'recipe_id': recipe_id}).fetchone()[0]
+        recipe_link = recipe_link.split('/')[-1]
+        return recipe_link
+
+@app.route('/like_recipe', methods=['POST'])
+@login_required
+def like_recipe():
+    user_id = current_user.id
+    recipe_id = request.form.get('recipe_id')
+    
+    with engine.connect() as connection:
+        connection.execute(text("""
+            INSERT INTO UserPreferencesLikes (user_id, recipe_id)
+            VALUES (:user_id, :recipe_id)
+        """), {'user_id': user_id, 'recipe_id': recipe_id})
+
+    flash("Recipe liked successfully!", "success")
+    return redirect(url_for('go_to_recipe', recipe_link=get_recipe_link_after_like(recipe_id)))
 
 @cache.cached(timeout=300, key_prefix='preprocessed_recipes')
 def get_preprocessed_recipes():
