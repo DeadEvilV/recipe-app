@@ -1,8 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for
 from sqlalchemy import create_engine, text
-from flask_login import LoginManager, login_user, logout_user, login_required, UserMixin
+from flask_login import LoginManager, current_user, login_user, logout_user, login_required, UserMixin
+from flask_caching import Cache
 import ast
 import pandas as pd
+import nltk
+from nltk.tokenize import word_tokenize
 
 app = Flask(__name__)
 app.secret_key = 'DUH342I54hF2IUdHaIHFGHE'
@@ -13,6 +16,13 @@ engine = create_engine(DATABASE_URI)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+# nltk.download('punkt_tab')
+
+cache = Cache(app, config={
+    'CACHE_TYPE': 'simple',
+    'CACHE_DEFAULT_TIMEOUT': 300
+})
 
 class User(UserMixin):
     def __init__(self, id, username, password):
@@ -95,7 +105,9 @@ def register():
                 VALUES (:username, :password)
             """), {'username': username, 'password': password})
             
-            user_id = connection.execute(text("SELECT LAST_INSERT_ID()")).fetchone()[0]
+            user_id = connection.execute(text("""SELECT user_id FROM Users 
+                                              WHERE username = :username AND password = :password"""), {
+                                                  'username': username, 'password': password}).fetchone()[0]
             
             for ingredient in selected_ingredients:
                 connection.execute(text("""
@@ -201,7 +213,8 @@ def search():
         return render_template('search_results.html', search_query=search_query, search_results=recipe_links)
     return render_template('search_results.html', search_query=search_query, search_results=[])
             
-def get_user_profile(user_id):
+def get_user_profile(category_columns):
+    user_id = current_user.id
     with engine.connect() as connection:
         preferred_ingredients = connection.execute(text("""
             SELECT ingredient_name
@@ -215,12 +228,21 @@ def get_user_profile(user_id):
             WHERE user_id = :user_id
         """), {'user_id': user_id}).fetchall()
 
-        preferred_ingredients = [row[0] for row in preferred_ingredients]
-        preferred_categories = [row[0] for row in preferred_categories]
+        preferred_ingredients = [word_tokenize(row[0].lower().strip()) for row in preferred_ingredients]
+        preferred_categories = [row[0].lower().strip() for row in preferred_categories]
+        
+        user_category_vector = []
+        for col in category_columns:
+            category_name = col.replace('category_', '')
+            if category_name in preferred_categories:
+                user_category_vector.append(1)
+            else:
+                user_category_vector.append(0)
         
         user_profile = {
+            'user_id': user_id,
             'preferred_ingredients': preferred_ingredients,
-            'preferred_categories': preferred_categories
+            'preferred_categories': user_category_vector  # One-hot encoded vector
         }
         
         return user_profile
@@ -247,23 +269,33 @@ def preprocess_data():
             number_of_servings = recipe[5].split('-')
             if len(number_of_servings) > 1:
                 number_of_servings = str(int(number_of_servings[0]) + int(number_of_servings[1]))
+            else:
+                number_of_servings = number_of_servings[0]
+            ingredients = recipe[9].lower().split(',')
+            ingredients = [word_tokenize(ingredient.strip()) for ingredient in ingredients]
             recipe_dict = {
-                'recipe_id': recipe[0],
-                'recipe_name': recipe[1].lower(),
+                'recipe_id': int(recipe[0]),
+                'recipe_name': word_tokenize(recipe[1].lower()),
                 'category': recipe[2].lower(),
-                'number_of_ingredients': recipe[3],
-                'number_of_steps': recipe[4],
-                'number_of_servings': number_of_servings,
-                'preparation_time': recipe[6],
-                'number_of_ratings': recipe[7],
+                'number_of_ingredients': int(recipe[3]),
+                'number_of_steps': int(recipe[4]),
+                'number_of_servings': int(number_of_servings),
+                'preparation_time': int(recipe[6]),
+                'number_of_ratings': int(recipe[7]),
                 'recipe_link': recipe[8].lower(),
-                'ingredients': recipe[9].lower()
+                'ingredients': ingredients
             }
             recipe_list.append(recipe_dict)
     recipe_df = pd.DataFrame(recipe_list, columns=column_names)
-    print(recipe_df['ingredients'])
+    recipe_df = pd.get_dummies(recipe_df, columns=['category'])
+    category_columns = [col for col in recipe_df.columns if col.startswith('category_')]
+    return recipe_df, category_columns
+
+@cache.cached(timeout=300, key_prefix='preprocessed_recipes')
+def get_preprocessed_recipes():
+    return preprocess_data()
 
 if __name__ == '__main__':
     create_tables()
-    preprocess_data()
+    get_preprocessed_recipes()
     app.run(debug=True)
