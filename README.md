@@ -1,24 +1,26 @@
 # Recipe App
 
-This project is a personal experiment in building a functional and flexible recipe application. The primary goal was to explore full-stack web development while working with unstructured data from the web.
+This project represents an effort to experiment with web development while engaging with the challenges of processing unstructured data. My primary aim was to explore the integration of backend, database, and web scraping technologies in a cohesive application.
 
 ## What I Did
 
 - **Backend with Flask**:  
-  I used Flask to build the backend of the application, handling routing and serving dynamic recipe content.
-  
+  Flask served as the backbone of the application, handling routing and enabling dynamic content delivery. It provided the framework for creating a functional and responsive web application.
+
 - **Database Management with SQL**:  
-  Recipes and user-related data are stored in a SQL database, allowing for efficient querying and data persistence.
+  I used a relational database to store and organize recipe data efficiently. SQL allowed me to perform structured queries, which helped manage the complexities of handling various types of recipe information.
 
 - **Web Scraping with Playwright**:  
-  I utilized Playwright to scrape recipe data from food.com, handling unstructured formats and converting them into a usable structure for the app.
+  To populate the application with data, I utilized Playwright to scrape recipes from food.com. This process involved managing and processing unstructured web data into a structured format usable by the application.
 
-- **No Recommendation System Yet**:  
-  While the app currently allows users to browse and interact with recipes, I haven’t implemented the recommendation algorithm yet. This will likely be a next step in development.
+- **Limitations**:  
+  While the app allows users to browse and search recipes, I have not yet implemented a recommendation system. Adding this feature would involve designing algorithms that analyze user behavior or preferences to provide tailored suggestions.
 
-## Why I Built This
+## Motivation
 
-I wanted to practice:
-- Integrating multiple technologies into a cohesive application.
-- Handling messy, real-world data and converting it into structured information.
-- Building a user-facing app while balancing backend complexity.
+The project was an opportunity to:
+- Work with unstructured data and transform it into something useful.
+- Develop skills in integrating web scraping tools with backend services and databases.
+- Create a functional application that bridges different technologies and workflows.
+
+This app is an ongoing learning experience, with room for improvement and expansion.
