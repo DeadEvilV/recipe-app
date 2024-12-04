@@ -10,27 +10,11 @@ async def create_pool():
         db="food-suggester",
         charset="utf8mb4",
         autocommit=True,
-        minsize=5,  # Minimum number of connections
-        maxsize=30,  # Maximum number of connections
+        minsize=5,
+        maxsize=30,
         cursorclass=aiomysql.DictCursor
     )
     return pool
-
-# def connect():
-#     timeout = 10
-#     connection = pymysql.connect(
-#         charset="utf8mb4",
-#         connect_timeout=timeout,
-#         cursorclass=pymysql.cursors.DictCursor,
-#         db="food-suggester",
-#         host="mysql-food-suggester-food-suggester.h.aivencloud.com",
-#         password="AVNS_fL1GBLVBNF4rHJjxi8v",
-#         read_timeout=timeout,
-#         port=16180,
-#         user="avnadmin",
-#         write_timeout=timeout,
-#     )
-#     return connection
 
 async def create_tables(pool):
     async with pool.acquire() as connection:
@@ -90,7 +74,6 @@ async def insert_recipe(pool, recipe_data, direction_dict, clean_ingredients, ca
         async with connection.cursor() as cursor:
             try:
                 await cursor.execute("START TRANSACTION;")
-                # Check if the recipe already exists
                 check_query = """
                 SELECT COUNT(*) as count FROM Recipes WHERE recipe_name = %s AND recipe_link = %s
                 """
@@ -108,7 +91,7 @@ async def insert_recipe(pool, recipe_data, direction_dict, clean_ingredients, ca
                         recipe_data['number_of_steps'],
                         recipe_data['number_of_servings'],
                         recipe_data['preparation_time'],
-                        str(recipe_data['ingredients_list']),  # Ensure it's a string
+                        str(recipe_data['ingredients_list']),
                         recipe_data['number_of_ratings'],
                         recipe_data['recipe_link']
                     ))

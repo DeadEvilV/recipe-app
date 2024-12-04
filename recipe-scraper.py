@@ -109,7 +109,6 @@ async def get_recipe_data(semaphore, browser, recipe_link, pool, page_queue):
             if "Whoops…" in await page.content():
                 return
             recipe_name = await page.locator('//*[@id="recipe"]/div[2]/h1').inner_text()
-            # print(recipe_name)
             if await page.locator('//*[@id="recipe"]/div[1]/nav/ol/li[2]/a/span').count() > 0:
                 category = await page.locator('//*[@id="recipe"]/div[1]/nav/ol/li[2]/a/span').inner_text()
             else:
@@ -193,16 +192,12 @@ def preparation_time_to_minutes(raw_preparation_time):
     return preparation_time
 
 def get_main_ingredient(ingredient):
-    # Remove any text in parentheses
     ingredient = re.sub(r'\(.*?\)', '', ingredient)
     
-    # Remove fractions and special characters like "⁄" or "/"
     ingredient = re.sub(r'[⁄/]', '', ingredient)
     
-    # Remove leading/trailing hyphens and non-word characters
     ingredient = ingredient.strip("-–— ")
     
-    # Remove quantities and units at the start
     units_list = [
         'teaspoon', 'teaspoons', 'tsp', 'tablespoon', 'tablespoons', 'tbsp', 'cup', 'cups',
         'pint', 'pints', 'quart', 'quarts', 'gallon', 'gallons', 'ounce', 'ounces', 'oz',
@@ -223,10 +218,8 @@ def get_main_ingredient(ingredient):
     for pattern in patterns:
         ingredient = re.sub(pattern, '', ingredient, flags=re.IGNORECASE)
     
-    # Remove any remaining numbers
     ingredient = re.sub(r'\b\d+\b', '', ingredient)
     
-    # Remove unwanted terms
     unwanted_terms = [
         'teaspoon', 'teaspoons', 'tsp', 'tablespoon', 'tablespoons', 'tbsp', 'cup', 'cups',
         'pint', 'pints', 'quart', 'quarts', 'gallon', 'gallons', 'ounce', 'ounces', 'oz',
@@ -259,16 +252,13 @@ def get_main_ingredient(ingredient):
         'bite sized', 'puree', 'purée', 'pureed', 'puréed', 'mashed', 'roughly chopped',
         'lightly packed', 'ounces', 'tablespoons', 'teaspoons', 'pounds', 'substitute', 'substitutes'
     ]
-    # Remove unwanted terms
     for term in unwanted_terms:
         pattern = r'\b' + re.escape(term) + r'\b'
         ingredient = re.sub(pattern, '', ingredient, flags=re.IGNORECASE)
     
-    # Remove extra whitespace and commas
     ingredient = re.sub(r'[,]', '', ingredient)
     ingredient = re.sub(r'\s+', ' ', ingredient).strip()
     
-    # Lemmatize the words to standardize singular/plural
     doc = nlp(ingredient)
     lemmatized_tokens = []
     for token in doc:
@@ -276,24 +266,21 @@ def get_main_ingredient(ingredient):
             if token.pos_ not in ['NOUN', 'PROPN']:
                 lemma = token.lemma_
             else:
-                lemma = token.text  # Keep nouns as they are
+                lemma = token.text
             lemmatized_tokens.append(lemma)
     if lemmatized_tokens:
         ingredient = ' '.join(lemmatized_tokens)
     else:
-        ingredient = ingredient  # fallback
+        ingredient = ingredient
     
-    # Remove any remaining unwanted terms again
     for term in unwanted_terms:
         pattern = r'\b' + re.escape(term) + r'\b'
         ingredient = re.sub(pattern, '', ingredient, flags=re.IGNORECASE)
     
-    # Remove extra whitespace
     ingredient = re.sub(r'\s+', ' ', ingredient).strip()
     
-    # If the ingredient is empty or only units/numbers, skip it
     if not ingredient or ingredient.lower() in units_list or ingredient.isdigit():
-        return None  # Skip adding this ingredient
+        return None
     
     return ingredient
 

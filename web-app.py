@@ -7,7 +7,7 @@ import pandas as pd
 app = Flask(__name__)
 app.secret_key = 'DUH342I54hF2IUdHaIHFGHE'
 
-DATABASE_URI = 'mysql+mysqlconnector://avnadmin:AVNS_fL1GBLVBNF4rHJjxi8v@mysql-food-suggester-food-suggester.h.aivencloud.com:16180/food-suggester'
+DATABASE_URI = 'mysql+mysqlconnector://(password)@localhost:3306/food-suggester'
 engine = create_engine(DATABASE_URI)
 
 login_manager = LoginManager()
