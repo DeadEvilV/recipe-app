@@ -3,10 +3,10 @@ import asyncio
 
 async def create_pool():
     pool = await aiomysql.create_pool(
-        host="mysql-food-suggester-food-suggester.h.aivencloud.com",
-        port=16180,
-        user="avnadmin",
-        password="AVNS_fL1GBLVBNF4rHJjxi8v",
+        host="127.0.0.1",
+        port=3306,
+        user="root",
+        password="(password)",
         db="food-suggester",
         charset="utf8mb4",
         autocommit=True,
