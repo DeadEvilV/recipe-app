@@ -13,6 +13,9 @@ This project represents an effort to experiment with web development while engag
 - **Web Scraping with Playwright**:  
   To populate the application with data, I utilized Playwright to scrape recipes from food.com. This process involved managing and processing unstructured web data into a structured format usable by the application.
 
+- **CSS and Frontend Styling**:  
+  The CSS used in this project was not written by me. As styling was not the primary focus of this project, I utilized pre-existing templates and tools. My efforts were concentrated on the backend functionality and data processing.
+
 - **Limitations**:  
   While the app allows users to browse and search recipes, I have not yet implemented a recommendation system. Adding this feature would involve designing algorithms that analyze user behavior or preferences to provide tailored suggestions.
 
