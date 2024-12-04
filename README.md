@@ -18,6 +18,7 @@ This project represents an effort to experiment with web development while engag
 
 - **Limitations**:  
   While the app allows users to browse and search recipes, I have not yet implemented a recommendation system.
+
 ## Motivation
 
 The project was an opportunity to:
@@ -25,3 +26,28 @@ The project was an opportunity to:
 - Develop skills in integrating web scraping tools with backend services and databases.
 
 This app is an ongoing learning experience, with room for improvement and expansion.
+
+## How to Test It Locally
+
+1. **Install Dependencies**:  
+   Ensure you have Python installed. Then, install the required dependencies using `requirements.txt`:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+## How to Test It Locally
+
+2. **Create the Database**:  
+   Use the `food-suggester.sql` file provided in this repository to set up the database:
+   - Open your MySQL client (Workbench, CLI, etc.).
+   - Create the database:
+     ```sql
+     CREATE DATABASE food-suggester;
+     ```
+   - Import the SQL file:
+     ```bash
+     mysql -u root -p food-suggester < path/to/food-suggester.sql
+     ```
+
+3. **Set the Correct Password**:  
+   Open `web-app.py` and `setup_database.py` files and update the database password to match your local MySQL configuration.
